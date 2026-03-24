@@ -1,0 +1,114 @@
+:root {
+  --brand-50: #eef5ff;
+  --brand-100: #dce9ff;
+  --brand-200: #c3d8ff;
+  --brand-500: #2f6bff;
+  --brand-600: #1f56db;
+  --ink-900: #122033;
+  --ink-700: #42506b;
+  --ink-500: #70809c;
+  --surface: #f4f8ff;
+  --card: rgba(255, 255, 255, 0.92);
+}
+
+page {
+  background: linear-gradient(180deg, #edf4ff 0%, #f8fbff 42%, #f4f8ff 100%);
+  color: var(--ink-900);
+  font-family: 'Trebuchet MS', 'Segoe UI', sans-serif;
+  overflow-x: hidden;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.mobile-shell {
+  min-height: 100vh;
+  width: 100%;
+  max-width: 100%;
+  padding: 48px 40px 260px;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+.screen-frame {
+  width: calc(100% - 24px);
+  max-width: calc(100% - 24px);
+  min-height: calc(100vh - 40px);
+  margin: 0 auto;
+  padding: 0;
+  box-sizing: border-box;
+  border-radius: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  overflow-x: hidden;
+}
+
+.section-title {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+
+  .title {
+    flex: 1;
+    min-width: 0;
+    font-size: 34px;
+    font-weight: 700;
+    color: var(--ink-900);
+  }
+
+  .caption {
+    flex: 0 1 140px;
+    min-width: 0;
+    max-width: 140px;
+    font-size: 22px;
+    color: var(--ink-500);
+    text-align: right;
+    white-space: normal;
+    word-break: break-word;
+  }
+}
+
+.glass-card {
+  background: var(--card);
+  border: 1px solid rgba(223, 232, 255, 0.95);
+  border-radius: 24px;
+  box-shadow: 0 16px 32px rgba(35, 74, 155, 0.08);
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--brand-50);
+  color: var(--brand-600);
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.star-row {
+  display: flex;
+  gap: 6px;
+  color: #ffb648;
+}
+
+view,
+text,
+image,
+swiper,
+swiper-item {
+  max-width: 100%;
+}
