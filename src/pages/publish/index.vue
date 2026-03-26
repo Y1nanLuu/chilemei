@@ -1,64 +1,62 @@
-<template>
+﻿<template>
   <view class="mobile-shell publish-page">
     <view class="screen-frame">
       <view class="hero glass-card">
-        <text class="hero-tag">发布新鲜食记</text>
-        <text class="hero-title">把今天最想推荐的一口，发给整个校园。</text>
-        <text class="hero-desc">照片、评分、亮点和实用贴士都可以一起记录。</text>
+        <text class="hero-tag">POST /foods</text>
+        <text class="hero-title">发布新的食物记录</text>
+        <text class="hero-desc">按后端文档，这里提交 food 基础信息和本次打卡评价。</text>
       </view>
 
       <view class="composer glass-card">
-        <view class="composer-head">
-          <view>
-            <text class="label">封面图片</text>
-            <text class="hint">支持上传多张，优先展示最能勾起食欲的一张。</text>
-          </view>
-          <view class="cover-placeholder">
-            <text class="cover-plus">+</text>
-          </view>
+        <view class="field">
+          <text class="label">食物名称</text>
+          <input class="input-box" :value="form.name" placeholder="例如：红烧牛肉面" @input="updateField('name', $event.detail.value)" />
         </view>
 
         <view class="field">
-          <text class="label">美食标题</text>
-          <view class="input-box">例如：蓝湾海鲜烩饭</view>
+          <text class="label">位置</text>
+          <input class="input-box" :value="form.location" placeholder="例如：一食堂二楼" @input="updateField('location', $event.detail.value)" />
         </view>
 
         <view class="field row">
           <view class="field-half">
-            <text class="label">所属餐厅</text>
-            <view class="input-box">潮汐轻食厨房</view>
+            <text class="label">价格</text>
+            <input class="input-box" type="digit" :value="form.price" placeholder="18.5" @input="updateField('price', $event.detail.value)" />
           </view>
           <view class="field-half">
-            <text class="label">价格</text>
-            <view class="input-box">￥32</view>
+            <text class="label">评价等级</text>
+            <picker class="input-box picker-box" mode="selector" :range="ratingLevels" :value="ratingLevelIndex" @change="onRatingLevelChange">
+              {{ form.ratingLevel }}
+            </picker>
           </view>
         </view>
 
         <view class="field">
-          <text class="label">你的评分</text>
-          <view class="score-row">
-            <text v-for="star in 5" :key="star" class="score-star">★</text>
-            <text class="score-value">4.8</text>
-          </view>
-        </view>
-
-        <view class="field">
-          <text class="label">特色亮点</text>
+          <text class="label">情绪标签</text>
           <view class="tag-row">
-            <text v-for="tag in tags" :key="tag" class="tag-pill">{{ tag }}</text>
+            <view class="choice-chip" :class="{ active: form.sentiment === 'like' }" @click="updateField('sentiment', 'like')">喜欢</view>
+            <view class="choice-chip" :class="{ active: form.sentiment === 'dislike' }" @click="updateField('sentiment', 'dislike')">劝退</view>
           </view>
         </view>
 
         <view class="field">
-          <text class="label">美食点评</text>
-          <view class="textarea-box">
-            米粒吸满海鲜高汤，整体口感浓郁但不腻，趁热吃更有层次。
-          </view>
+          <text class="label">food.image_url</text>
+          <input class="input-box" :value="form.foodImageUrl" placeholder="https://example.com/food.jpg" @input="updateField('foodImageUrl', $event.detail.value)" />
+        </view>
+
+        <view class="field">
+          <text class="label">record.image_url</text>
+          <input class="input-box" :value="form.recordImageUrl" placeholder="https://example.com/record.jpg" @input="updateField('recordImageUrl', $event.detail.value)" />
+        </view>
+
+        <view class="field">
+          <text class="label">评价内容</text>
+          <textarea class="textarea-box" :value="form.reviewText" maxlength="300" placeholder="写下这次打卡感受" @input="updateField('reviewText', $event.detail.value)" />
         </view>
 
         <view class="actions">
-          <view class="draft-btn">存为草稿</view>
-          <view class="publish-btn">立即发布</view>
+          <view class="draft-btn" @click="fillDemo">填充示例</view>
+          <view class="publish-btn" @click="submitRecord">立即发布</view>
         </view>
       </view>
     </view>
@@ -66,7 +64,93 @@
 </template>
 
 <script setup lang="ts">
-const tags = ['高颜值摆盘', '奶香浓郁', '适合约饭']
+import Taro from '@tarojs/taro'
+import { computed, reactive } from 'vue'
+import { createFoodRecord } from '../../api/foods'
+import type { CreateFoodRecordPayload, Sentiment } from '../../api/types'
+import { hasAccessToken } from '../../utils/auth'
+import { RATING_LEVEL_OPTIONS, type RatingLevelLabel, ratingLabelToValue } from '../../utils/rating'
+
+const ratingLevels = RATING_LEVEL_OPTIONS.map((item) => item.label)
+
+const form = reactive({
+  name: '',
+  location: '',
+  price: '',
+  ratingLevel: '顶级' as RatingLevelLabel,
+  sentiment: 'like' as Sentiment,
+  foodImageUrl: '',
+  recordImageUrl: '',
+  reviewText: '',
+})
+
+const ratingLevelIndex = computed(() => {
+  const index = ratingLevels.findIndex((item) => item === form.ratingLevel)
+  return index < 0 ? 0 : index
+})
+
+const updateField = (field: keyof typeof form, value: string) => {
+  form[field] = value as never
+}
+
+const onRatingLevelChange = (event) => {
+  form.ratingLevel = (ratingLevels[event.detail.value] || ratingLevels[0]) as RatingLevelLabel
+}
+
+const fillDemo = () => {
+  form.name = '红烧牛肉面'
+  form.location = '一食堂二楼'
+  form.price = '18.5'
+  form.ratingLevel = '顶级'
+  form.sentiment = 'like'
+  form.foodImageUrl = 'https://example.com/food.jpg'
+  form.recordImageUrl = 'https://example.com/record.jpg'
+  form.reviewText = '汤很浓，面也劲道'
+}
+
+const buildPayload = (): CreateFoodRecordPayload | null => {
+  if (!form.name || !form.location || !form.price || !form.reviewText) {
+    return null
+  }
+
+  return {
+    food: {
+      name: form.name,
+      location: form.location,
+      price: Number(form.price),
+      ...(form.foodImageUrl ? { image_url: form.foodImageUrl } : {}),
+    },
+    sentiment: form.sentiment,
+    rating_level: ratingLabelToValue(form.ratingLevel),
+    review_text: form.reviewText,
+    ...(form.recordImageUrl ? { image_url: form.recordImageUrl } : {}),
+  }
+}
+
+const submitRecord = async () => {
+  if (!hasAccessToken()) {
+    Taro.showToast({ title: '请先登录后再发布', icon: 'none' })
+    return
+  }
+
+  const payload = buildPayload()
+
+  if (!payload) {
+    Taro.showToast({ title: '请填写完整信息', icon: 'none' })
+    return
+  }
+
+  try {
+    const result = await createFoodRecord(payload)
+    Taro.showToast({ title: '发布成功', icon: 'success' })
+    Taro.navigateTo({
+      url: `/pages/check/index?id=${result.id}`,
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '发布失败'
+    Taro.showToast({ title: message, icon: 'none' })
+  }
+}
 </script>
 
 <style lang="scss">
@@ -106,35 +190,6 @@ const tags = ['高颜值摆盘', '奶香浓郁', '适合约饭']
     padding: 24px;
   }
 
-  .composer-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-    margin-bottom: 24px;
-  }
-
-  .composer-head > view:first-child {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .cover-placeholder {
-    width: 112px;
-    height: 112px;
-    border-radius: 24px;
-    background: linear-gradient(135deg, #edf4ff 0%, #d6e5ff 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-  }
-
-  .cover-plus {
-    font-size: 56px;
-    color: var(--brand-500);
-  }
-
   .field {
     margin-bottom: 24px;
   }
@@ -157,50 +212,28 @@ const tags = ['高颜值摆盘', '奶香浓郁', '适合约饭']
     margin-bottom: 12px;
   }
 
-  .hint {
-    display: block;
-    font-size: 20px;
-    line-height: 1.5;
-    color: var(--ink-500);
-    margin-top: 8px;
-    word-break: break-word;
-  }
-
   .input-box,
-  .textarea-box {
+  .textarea-box,
+  .picker-box {
+    width: 100%;
     border-radius: 20px;
     background: #f7faff;
     border: 1px solid #e1ebff;
     color: var(--ink-700);
     font-size: 24px;
     line-height: 1.6;
+    box-sizing: border-box;
   }
 
-  .input-box {
+  .input-box,
+  .picker-box {
     padding: 20px;
+    min-height: 80px;
   }
 
   .textarea-box {
     min-height: 160px;
     padding: 20px;
-  }
-
-  .score-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .score-star {
-    font-size: 34px;
-    color: #ffb648;
-  }
-
-  .score-value {
-    font-size: 26px;
-    font-weight: 700;
-    color: var(--brand-600);
-    margin-left: 8px;
   }
 
   .tag-row {
@@ -209,13 +242,18 @@ const tags = ['高颜值摆盘', '奶香浓郁', '适合约饭']
     gap: 12px;
   }
 
-  .tag-pill {
+  .choice-chip {
     padding: 12px 18px;
     border-radius: 999px;
     background: var(--brand-50);
     color: var(--brand-600);
     font-size: 22px;
     font-weight: 600;
+  }
+
+  .choice-chip.active {
+    background: linear-gradient(135deg, #3476ff 0%, #59a7ff 100%);
+    color: #fff;
   }
 
   .actions {

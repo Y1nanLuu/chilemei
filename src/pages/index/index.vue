@@ -1,97 +1,223 @@
-<template>
+﻿<template>
   <view class="mobile-shell home-page">
     <view class="screen-frame">
       <view class="header">
         <view class="header-copy">
-          <text class="headline">Find something worth saving today.</text>
+          <text class="headline">今日推荐和个性化推荐已经切到后端接口。</text>
+          <text class="subhead">接口来源：GET /foods/recommendations/daily 和 GET /foods/recommendations/personalized</text>
         </view>
       </view>
 
       <view class="search-box glass-card">
-        <text class="search-icon">⌕</text>
-        <text class="search-text">Search dishes, restaurants, or flavors</text>
+        <text class="search-text">后端推荐会优先返回最近 24 小时内的最新可见记录</text>
       </view>
 
-      <view class="section-title">
-        <text class="title">Today Picks</text>
-      </view>
+      <view v-if="loading" class="status-card glass-card">加载中...</view>
+      <view v-else-if="errorMessage" class="status-card glass-card">{{ errorMessage }}</view>
 
-      <view class="hero-clip">
-        <swiper class="hero-swiper" circular autoplay interval="3600" duration="420">
-          <swiper-item v-for="dish in featuredDishes" :key="dish.id">
-            <view class="hero-card glass-card" @click="openDetail(dish.id)">
-              <image class="hero-image" :src="dish.image" mode="aspectFill" />
-              <view class="hero-overlay">
-                <view class="hero-top">
-                  <text v-for="tag in dish.tags.slice(0, 2)" :key="tag" class="hero-tag">{{ tag }}</text>
-                </view>
-                <view class="hero-bottom">
-                  <text class="hero-name">{{ dish.name }}</text>
-                  <text class="hero-meta">{{ dish.restaurant }} · ${{ dish.price }}</text>
-                  <view class="hero-rating">
-                    <text class="star">★</text>
-                    <text>{{ dish.rating }}</text>
+      <template v-else>
+        <view class="section-title">
+          <text class="title">Today Picks</text>
+        </view>
+
+        <view v-if="dailyPicks.length" class="hero-clip">
+          <swiper class="hero-swiper" circular autoplay interval="3600" duration="420">
+            <swiper-item v-for="dish in dailyPicks" :key="dish.id">
+              <view class="hero-card glass-card" @click="openDetail(dish.id)">
+                <image class="hero-image" :src="dish.image" mode="aspectFill" />
+                <view class="hero-overlay">
+                  <view class="hero-top">
+                    <text v-for="tag in dish.tags" :key="tag" class="hero-tag">{{ tag }}</text>
+                  </view>
+                  <view class="hero-bottom">
+                    <text class="hero-name">{{ dish.name }}</text>
+                    <text class="hero-meta">{{ dish.location }} | RMB {{ dish.price }}</text>
+                    <view class="hero-rating">
+                      <text class="star">★</text>
+                      <text>{{ dish.ratingText }}</text>
+                    </view>
                   </view>
                 </view>
               </view>
-            </view>
-          </swiper-item>
-        </swiper>
-      </view>
+            </swiper-item>
+          </swiper>
+        </view>
+        <view v-else class="status-card glass-card">暂无今日推荐</view>
 
-      <view class="section-title">
-        <text class="title">Hot Spots</text>
-      </view>
+        <view class="section-title">
+          <text class="title">Hot Spots</text>
+        </view>
 
-      <view class="restaurant-grid">
-        <view v-for="restaurant in restaurantCards" :key="restaurant.id" class="restaurant-card glass-card">
-          <image class="restaurant-image" :src="restaurant.image" mode="aspectFill" />
-          <view class="restaurant-body">
-            <text class="restaurant-name">{{ restaurant.name }}</text>
-            <text class="restaurant-theme">{{ restaurant.theme }}</text>
-            <view class="restaurant-score">
-              <text class="star">★</text>
-              <text>{{ restaurant.score }}</text>
+        <view v-if="hotSpots.length" class="restaurant-grid">
+          <view
+            v-for="spot in hotSpots"
+            :key="spot.id"
+            class="restaurant-card glass-card"
+            @click="openDetail(spot.recordId)"
+          >
+            <image class="restaurant-image" :src="spot.image" mode="aspectFill" />
+            <view class="restaurant-body">
+              <text class="restaurant-name">{{ spot.name }}</text>
+              <text class="restaurant-theme">{{ spot.theme }}</text>
+              <view class="restaurant-score">
+                <text class="star">★</text>
+                <text>{{ spot.score }}</text>
+              </view>
             </view>
           </view>
         </view>
-      </view>
+        <view v-else class="status-card glass-card">暂无热门地点数据</view>
 
-      <view class="section-title">
-        <text class="title">Recommended</text>
-      </view>
+        <view class="section-title">
+          <text class="title">Recommended</text>
+        </view>
 
-      <view class="recommend-list">
-        <view
-          v-for="dish in featuredDishes"
-          :key="dish.id"
-          class="recommend-card glass-card"
-          @click="openDetail(dish.id)"
-        >
-          <image class="recommend-image" :src="dish.image" mode="aspectFill" />
-          <view class="recommend-content">
-            <text class="recommend-name">{{ dish.name }}</text>
-            <text class="recommend-summary">{{ dish.summary }}</text>
-            <view class="recommend-foot">
-              <text class="recommend-meta">{{ dish.location }}</text>
-              <text class="recommend-price">${{ dish.price }}</text>
+        <view v-if="recommendations.length" class="recommend-list">
+          <view
+            v-for="dish in recommendations"
+            :key="dish.id"
+            class="recommend-card glass-card"
+            @click="openDetail(dish.id)"
+          >
+            <image class="recommend-image" :src="dish.image" mode="aspectFill" />
+            <view class="recommend-content">
+              <text class="recommend-name">{{ dish.name }}</text>
+              <text class="recommend-summary">{{ dish.summary }}</text>
+              <view class="recommend-foot">
+                <text class="recommend-meta">{{ dish.location }}</text>
+                <text class="recommend-price">RMB {{ dish.price }}</text>
+              </view>
             </view>
           </view>
         </view>
-      </view>
+        <view v-else class="status-card glass-card">暂无个性化推荐</view>
+      </template>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
-import Taro from '@tarojs/taro'
-import { featuredDishes, restaurantCards } from '../../data/mock'
+import Taro, { useDidShow } from '@tarojs/taro'
+import { computed, ref } from 'vue'
+import { getDailyRecommendations, getPersonalizedRecommendations } from '../../api/foods'
+import type { FoodRecord } from '../../api/types'
+import { hasAccessToken } from '../../utils/auth'
+import { ratingLevelToLabel } from '../../utils/rating'
 
-const openDetail = (id: string) => {
+type HomeDishCard = {
+  id: number
+  name: string
+  location: string
+  price: number
+  image: string
+  summary: string
+  tags: string[]
+  ratingText: string
+}
+
+type HotSpotCard = {
+  id: string
+  recordId: number
+  name: string
+  theme: string
+  image: string
+  score: string
+}
+
+const PLACEHOLDER_IMAGE = 'https://dummyimage.com/640x420/eaf1ff/7a90c2&text=Chilemei'
+
+const dailyRecords = ref<FoodRecord[]>([])
+const personalizedRecords = ref<FoodRecord[]>([])
+const loading = ref(false)
+const errorMessage = ref('')
+
+const sentimentLabelMap: Record<string, string> = {
+  like: '喜欢',
+  dislike: '劝退',
+}
+
+const mapRecordToCard = (record: FoodRecord): HomeDishCard => {
+  return {
+    id: record.id,
+    name: record.food.name,
+    location: record.food.location,
+    price: record.food.price,
+    image: record.image_url || record.food.image_url || PLACEHOLDER_IMAGE,
+    summary: record.review_text || '这条记录暂无文字评价',
+    tags: [
+      sentimentLabelMap[record.sentiment] || record.sentiment,
+      ratingLevelToLabel(record.rating_level),
+    ].filter(Boolean),
+    ratingText: ratingLevelToLabel(record.rating_level),
+  }
+}
+
+const dailyPicks = computed(() => dailyRecords.value.map(mapRecordToCard))
+const recommendations = computed(() => personalizedRecords.value.map(mapRecordToCard))
+
+const hotSpots = computed<HotSpotCard[]>(() => {
+  const locationMap = new Map<string, HotSpotCard>()
+  const merged = [...dailyRecords.value, ...personalizedRecords.value]
+
+  merged.forEach((record) => {
+    const key = record.food.location
+    const current = locationMap.get(key)
+
+    if (!current) {
+      locationMap.set(key, {
+        id: `${record.food.location}-${record.id}`,
+        recordId: record.id,
+        name: record.food.location,
+        theme: `最近常出现：${record.food.name}`,
+        image: record.image_url || record.food.image_url || PLACEHOLDER_IMAGE,
+        score: ratingLevelToLabel(record.rating_level),
+      })
+    }
+  })
+
+  return Array.from(locationMap.values()).slice(0, 4)
+})
+
+const loadData = async () => {
+  if (!hasAccessToken()) {
+    errorMessage.value = '请先前往登录页获取 access token。'
+    dailyRecords.value = []
+    personalizedRecords.value = []
+    return
+  }
+
+  loading.value = true
+  errorMessage.value = ''
+
+  try {
+    const [daily, personalized] = await Promise.all([
+      getDailyRecommendations(),
+      getPersonalizedRecommendations(),
+    ])
+
+    dailyRecords.value = daily
+    personalizedRecords.value = personalized
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '推荐接口请求失败'
+    errorMessage.value = message
+    Taro.showToast({
+      title: message,
+      icon: 'none',
+    })
+  } finally {
+    loading.value = false
+  }
+}
+
+const openDetail = (id: number) => {
   Taro.navigateTo({
     url: `/pages/check/index?id=${id}`,
   })
 }
+
+useDidShow(() => {
+  void loadData()
+})
 </script>
 
 <style lang="scss">
@@ -142,7 +268,17 @@ const openDetail = (id: string) => {
     word-break: break-word;
   }
 
-  .search-box {
+  .subhead {
+    display: block;
+    margin-top: 10px;
+    font-size: 20px;
+    line-height: 1.6;
+    color: var(--ink-500);
+    word-break: break-word;
+  }
+
+  .search-box,
+  .status-card {
     display: flex;
     align-items: center;
     gap: 18px;
@@ -150,13 +286,6 @@ const openDetail = (id: string) => {
     padding: 24px 28px;
     margin-bottom: 36px;
     overflow: hidden;
-  }
-
-  .search-icon {
-    flex-shrink: 0;
-    color: var(--brand-500);
-    font-size: 28px;
-    line-height: 1;
   }
 
   .search-text {

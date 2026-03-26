@@ -1,19 +1,23 @@
-<template>
+﻿<template>
   <view class="mobile-shell record-page">
     <view class="screen-frame">
       <view class="section-title">
-        <text class="title">每日记录</text>
-        <text class="caption">竖向时间轴</text>
+        <text class="title">我的记录</text>
+        <text class="caption">接口：GET /foods?mine_only=true</text>
       </view>
 
       <view class="summary glass-card">
-        <view class="summary-pill">本周记录 7 餐</view>
-        <text class="summary-title">你最近更偏爱高颜值轻食和海鲜风味。</text>
-        <text class="summary-copy">时间轴保留每次用餐的照片、情绪和热量，让回看更有画面感。</text>
+        <view class="summary-pill">累计 {{ records.length }} 条</view>
+        <text class="summary-title">{{ summaryTitle }}</text>
+        <text class="summary-copy">这里展示的是当前登录用户自己的打卡记录，时间按最近上传优先排序。</text>
       </view>
 
-      <view class="timeline">
-        <view v-for="(item, index) in timelineRecords" :key="item.day" class="timeline-item">
+      <view v-if="loading" class="summary glass-card">加载中...</view>
+      <view v-else-if="errorMessage" class="summary glass-card">{{ errorMessage }}</view>
+      <view v-else-if="records.length === 0" class="summary glass-card">还没有个人记录</view>
+
+      <view v-else class="timeline">
+        <view v-for="(item, index) in timelineRecords" :key="item.id" class="timeline-item" @click="openDetail(item.id)">
           <view class="timeline-rail">
             <view class="timeline-dot"></view>
             <view v-if="index !== timelineRecords.length - 1" class="timeline-line"></view>
@@ -22,14 +26,14 @@
             <view class="timeline-head">
               <view>
                 <text class="timeline-day">{{ item.day }}</text>
-                <text class="timeline-meal">{{ item.meal }}</text>
+                <text class="timeline-meal">{{ item.time }}</text>
               </view>
-              <text class="timeline-mood">{{ item.mood }}</text>
+              <text class="timeline-mood">{{ item.sentiment }}</text>
             </view>
             <image class="timeline-image" :src="item.image" mode="aspectFill" />
             <text class="timeline-title">{{ item.title }}</text>
             <text class="timeline-note">{{ item.note }}</text>
-            <text class="timeline-calories">{{ item.calories }}</text>
+            <text class="timeline-calories">{{ item.meta }}</text>
           </view>
         </view>
       </view>
@@ -38,7 +42,71 @@
 </template>
 
 <script setup lang="ts">
-import { timelineRecords } from '../../data/mock'
+import Taro, { useDidShow } from '@tarojs/taro'
+import { computed, ref } from 'vue'
+import { getFoodRecords } from '../../api/foods'
+import type { FoodRecord } from '../../api/types'
+import { hasAccessToken } from '../../utils/auth'
+
+const PLACEHOLDER_IMAGE = 'https://dummyimage.com/640x420/eaf1ff/7a90c2&text=Chilemei'
+
+const records = ref<FoodRecord[]>([])
+const loading = ref(false)
+const errorMessage = ref('')
+
+const summaryTitle = computed(() => {
+  const likeCount = records.value.filter((item) => item.sentiment === 'like').length
+  return likeCount ? `你一共标记了 ${likeCount} 条“喜欢”的记录。` : '先去发布一条新记录吧。'
+})
+
+const timelineRecords = computed(() => {
+  return [...records.value]
+    .sort((a, b) => new Date(b.uploaded_at).getTime() - new Date(a.uploaded_at).getTime())
+    .map((item) => ({
+      id: item.id,
+      day: formatDate(item.uploaded_at),
+      time: formatTime(item.uploaded_at),
+      title: item.food.name,
+      note: item.review_text || '这条记录没有补充评价。',
+      image: item.image_url || item.food.image_url || PLACEHOLDER_IMAGE,
+      sentiment: item.sentiment === 'dislike' ? '劝退' : '喜欢',
+      meta: `${item.food.location} | RMB ${item.food.price}`,
+    }))
+})
+
+const formatDate = (value: string) => value.replace('T', ' ').slice(0, 10)
+const formatTime = (value: string) => value.replace('T', ' ').slice(11, 16)
+
+const loadData = async () => {
+  if (!hasAccessToken()) {
+    errorMessage.value = '请先登录后再查看个人记录。'
+    records.value = []
+    return
+  }
+
+  loading.value = true
+  errorMessage.value = ''
+
+  try {
+    records.value = await getFoodRecords({ mine_only: true })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '个人记录加载失败'
+    errorMessage.value = message
+    Taro.showToast({ title: message, icon: 'none' })
+  } finally {
+    loading.value = false
+  }
+}
+
+const openDetail = (id: number) => {
+  Taro.navigateTo({
+    url: `/pages/check/index?id=${id}`,
+  })
+}
+
+useDidShow(() => {
+  void loadData()
+})
 </script>
 
 <style lang="scss">

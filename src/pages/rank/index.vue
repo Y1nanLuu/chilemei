@@ -1,9 +1,9 @@
-<template>
+﻿<template>
   <view class="mobile-shell rank-page">
     <view class="screen-frame">
       <view class="section-title">
         <text class="title">热度榜单</text>
-        <text class="caption">日榜 / 周榜 / 总榜</text>
+        <text class="caption">接口：GET /foods/rankings</text>
       </view>
 
       <view class="tabs glass-card">
@@ -12,53 +12,94 @@
           :key="tab.key"
           class="tab-item"
           :class="{ active: activeTab === tab.key }"
-          @click="activeTab = tab.key"
+          @click="switchTab(tab.key)"
         >
           {{ tab.label }}
         </view>
       </view>
 
-      <view class="board-list">
-        <view v-for="(item, index) in currentBoard" :key="item.name" class="board-card glass-card" @click="openTopDish(index)">
+      <view v-if="loading" class="board-card glass-card">加载中...</view>
+      <view v-else-if="errorMessage" class="board-card glass-card">{{ errorMessage }}</view>
+
+      <view v-else class="board-list">
+        <view
+          v-for="(item, index) in rankings"
+          :key="`${item.food_id}-${activeTab}`"
+          class="board-card glass-card"
+          @click="openFood(item)"
+        >
           <view class="board-rank" :class="`rank-${index + 1}`">{{ index + 1 }}</view>
           <view class="board-content">
             <view class="board-head">
-              <text class="board-name">{{ item.name }}</text>
-              <text class="board-price">￥{{ item.price }}</text>
+              <text class="board-name">{{ item.food_name }}</text>
+              <text class="board-price">RMB {{ item.price }}</text>
             </view>
-            <text class="board-restaurant">{{ item.restaurant }}</text>
+            <text class="board-restaurant">{{ item.location }}</text>
             <view class="board-meta">
-              <text class="board-heat">热度 {{ item.heat }}</text>
-              <text class="board-action">查看详情</text>
+              <text class="board-heat">得分 {{ item.score }} | 喜欢 {{ item.like_count }} | 劝退 {{ item.dislike_count }}</text>
+              <text class="board-action">查看关联记录</text>
             </view>
           </view>
         </view>
+        <view v-if="rankings.length === 0" class="board-card glass-card">暂无榜单数据</view>
       </view>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import Taro from '@tarojs/taro'
-import { featuredDishes, rankBoards } from '../../data/mock'
+import { ref } from 'vue'
+import Taro, { useDidShow } from '@tarojs/taro'
+import { getFoodRankings } from '../../api/foods'
+import type { FoodRankingItem } from '../../api/types'
+import { hasAccessToken } from '../../utils/auth'
 
 const tabs = [
   { key: 'daily', label: '日榜' },
   { key: 'weekly', label: '周榜' },
-  { key: 'total', label: '总榜' },
+  { key: 'all', label: '总榜' },
 ] as const
 
-const activeTab = ref<'daily' | 'weekly' | 'total'>('daily')
+const activeTab = ref<'daily' | 'weekly' | 'all'>('daily')
+const rankings = ref<FoodRankingItem[]>([])
+const loading = ref(false)
+const errorMessage = ref('')
 
-const currentBoard = computed(() => rankBoards[activeTab.value])
+const loadData = async () => {
+  if (!hasAccessToken()) {
+    errorMessage.value = '请先登录后再查看榜单。'
+    rankings.value = []
+    return
+  }
 
-const openTopDish = (index: number) => {
-  const target = featuredDishes[index] ?? featuredDishes[0]
+  loading.value = true
+  errorMessage.value = ''
+
+  try {
+    rankings.value = await getFoodRankings(activeTab.value, 'global')
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '榜单加载失败'
+    errorMessage.value = message
+    Taro.showToast({ title: message, icon: 'none' })
+  } finally {
+    loading.value = false
+  }
+}
+
+const switchTab = (tab: 'daily' | 'weekly' | 'all') => {
+  activeTab.value = tab
+  void loadData()
+}
+
+const openFood = (item: FoodRankingItem) => {
   Taro.navigateTo({
-    url: `/pages/check/index?id=${target.id}`,
+    url: `/pages/check/index?foodName=${encodeURIComponent(item.food_name)}&location=${encodeURIComponent(item.location)}`,
   })
 }
+
+useDidShow(() => {
+  void loadData()
+})
 </script>
 
 <style lang="scss">

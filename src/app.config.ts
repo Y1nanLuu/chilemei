@@ -1,12 +1,13 @@
 export default defineAppConfig({
   pages: [
+    'pages/register/index',
+    'pages/check/index',
+    
     'pages/index/index',
     'pages/record/index',
     'pages/publish/index',
     'pages/rank/index',
     'pages/profile/index',
-    'pages/check/index',
-    'pages/register/index',
   ],
   window: {
     backgroundTextStyle: 'light',
