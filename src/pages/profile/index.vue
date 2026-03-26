@@ -57,8 +57,8 @@ import { featuredDishes, profileHighlights, quickActions } from '../../data/mock
   .profile-hero {
     padding: 24px;
     margin-bottom: 22px;
-    background: linear-gradient(135deg, #2f6bff 0%, #7bbcff 100%);
-    color: #fff;
+    background: linear-gradient(135deg, #fff4df 0%, #f8c66d 100%);
+    color: var(--ink-900);
   }
 
   .hero-top {
@@ -76,7 +76,7 @@ import { featuredDishes, profileHighlights, quickActions } from '../../data/mock
     width: 82px;
     height: 82px;
     border-radius: 26px;
-    background: rgba(255, 255, 255, 0.18);
+    background: rgba(255, 255, 255, 0.42);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -96,7 +96,7 @@ import { featuredDishes, profileHighlights, quickActions } from '../../data/mock
     display: block;
     font-size: 22px;
     line-height: 1.6;
-    color: rgba(255, 255, 255, 0.82);
+    color: rgba(51, 39, 34, 0.72);
     word-break: break-word;
   }
 
@@ -119,13 +119,13 @@ import { featuredDishes, profileHighlights, quickActions } from '../../data/mock
   }
 
   .follow-btn {
-    background: #fff;
-    color: var(--brand-600);
+    background: #fffaf4;
+    color: var(--peach-600);
   }
 
   .share-btn {
-    background: rgba(255, 255, 255, 0.16);
-    color: #fff;
+    background: rgba(255, 250, 244, 0.72);
+    color: var(--ink-900);
   }
 
   .stats-grid {
@@ -173,7 +173,7 @@ import { featuredDishes, profileHighlights, quickActions } from '../../data/mock
   }
 
   .action-arrow {
-    color: var(--brand-600);
+    color: var(--peach-600);
     font-size: 24px;
   }
 

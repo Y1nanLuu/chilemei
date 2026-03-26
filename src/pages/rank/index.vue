@@ -83,9 +83,9 @@ const openTopDish = (index: number) => {
   }
 
   .tab-item.active {
-    background: linear-gradient(135deg, #2f6bff 0%, #68b2ff 100%);
-    color: #fff;
-    box-shadow: 0 14px 24px rgba(47, 107, 255, 0.18);
+    background: linear-gradient(135deg, var(--brand-500) 0%, var(--peach-500) 100%);
+    color: #fffaf4;
+    box-shadow: 0 8px 16px rgba(220, 154, 95, 0.1);
   }
 
   .board-list {
@@ -105,7 +105,7 @@ const openTopDish = (index: number) => {
     width: 56px;
     height: 56px;
     border-radius: 18px;
-    background: #dce8ff;
+    background: #fff1dc;
     color: var(--brand-600);
     font-size: 26px;
     font-weight: 800;
@@ -115,7 +115,7 @@ const openTopDish = (index: number) => {
   }
 
   .rank-1 {
-    background: linear-gradient(135deg, #ffd873 0%, #ffb648 100%);
+    background: linear-gradient(135deg, #ffd985 0%, #f0b65d 100%);
     color: #6f4a00;
   }
 
@@ -125,7 +125,7 @@ const openTopDish = (index: number) => {
   }
 
   .rank-3 {
-    background: linear-gradient(135deg, #ffcfa9 0%, #df9e6c 100%);
+    background: linear-gradient(135deg, #f7c1a3 0%, #df916a 100%);
     color: #6f3d0b;
   }
 

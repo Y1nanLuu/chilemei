@@ -3,7 +3,6 @@
     <view class="screen-frame">
       <view class="section-title">
         <text class="title">每日记录</text>
-        <text class="caption">竖向时间轴</text>
       </view>
 
       <view class="summary glass-card">
@@ -89,15 +88,15 @@ import { timelineRecords } from '../../data/mock'
     width: 22px;
     height: 22px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #2f6bff 0%, #74b7ff 100%);
-    box-shadow: 0 0 0 8px rgba(47, 107, 255, 0.12);
+    background: linear-gradient(135deg, var(--brand-500) 0%, var(--peach-500) 100%);
+    box-shadow: 0 0 0 5px rgba(241, 197, 109, 0.12);
   }
 
   .timeline-line {
     width: 2px;
     flex: 1;
     margin-top: 10px;
-    background: linear-gradient(180deg, rgba(47, 107, 255, 0.45) 0%, rgba(47, 107, 255, 0.06) 100%);
+    background: linear-gradient(180deg, rgba(220, 154, 95, 0.45) 0%, rgba(220, 154, 95, 0.06) 100%);
   }
 
   .timeline-card {
@@ -130,7 +129,7 @@ import { timelineRecords } from '../../data/mock'
   .timeline-mood {
     padding: 8px 14px;
     border-radius: 999px;
-    background: #edf4ff;
+    background: #fff0d8;
     color: var(--brand-600);
     font-size: 20px;
   }

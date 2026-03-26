@@ -36,7 +36,7 @@ const goToHome = () => {
 .register-page {
   .welcome-card {
     padding: 28px;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(236, 244, 255, 0.96) 100%);
+    background: linear-gradient(180deg, rgba(255, 252, 247, 0.96) 0%, rgba(255, 242, 224, 0.96) 100%);
   }
 
   .welcome-tag {
@@ -68,7 +68,7 @@ const goToHome = () => {
     overflow: hidden;
     border-radius: 24px;
     background: #fff;
-    box-shadow: 0 16px 28px rgba(35, 74, 155, 0.08);
+    box-shadow: 0 10px 22px rgba(132, 101, 73, 0.06);
   }
 
   .preview-image {
@@ -95,7 +95,7 @@ const goToHome = () => {
   .enter-btn {
     height: 92px;
     border-radius: 24px;
-    background: linear-gradient(135deg, #2f6bff 0%, #6cb6ff 100%);
+    background: linear-gradient(135deg, var(--brand-500) 0%, var(--peach-500) 100%);
     color: #fff;
     font-size: 28px;
     font-weight: 700;
@@ -103,7 +103,7 @@ const goToHome = () => {
     align-items: center;
     justify-content: center;
     margin-top: 24px;
-    box-shadow: 0 18px 30px rgba(47, 107, 255, 0.24);
+    box-shadow: 0 8px 16px rgba(220, 154, 95, 0.12);
   }
 }
 </style>

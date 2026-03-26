@@ -114,7 +114,7 @@ const dish = computed(() => {
     width: 58px;
     height: 58px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #2f6bff 0%, #7dbbff 100%);
+    background: linear-gradient(135deg, var(--brand-500) 0%, var(--peach-500) 100%);
     color: #fff;
     font-size: 26px;
     font-weight: 700;
@@ -216,7 +216,7 @@ const dish = computed(() => {
     height: 12px;
     margin-top: 10px;
     border-radius: 50%;
-    background: var(--brand-500);
+    background: var(--peach-500);
     flex-shrink: 0;
   }
 

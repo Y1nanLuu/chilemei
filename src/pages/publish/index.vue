@@ -73,15 +73,15 @@ const tags = ['高颜值摆盘', '奶香浓郁', '适合约饭']
 .publish-page {
   .hero {
     padding: 28px;
-    background: linear-gradient(135deg, #3476ff 0%, #59a7ff 100%);
-    color: #fff;
+    background: linear-gradient(135deg, #fff0d8 0%, #f3c975 100%);
+    color: var(--ink-900);
   }
 
   .hero-tag {
     display: inline-block;
     padding: 8px 14px;
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.18);
+    background: rgba(255, 250, 244, 0.68);
     font-size: 20px;
     margin-bottom: 16px;
   }
@@ -123,7 +123,7 @@ const tags = ['高颜值摆盘', '奶香浓郁', '适合约饭']
     width: 112px;
     height: 112px;
     border-radius: 24px;
-    background: linear-gradient(135deg, #edf4ff 0%, #d6e5ff 100%);
+    background: linear-gradient(135deg, #fff6e8 0%, #ffe1b8 100%);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -132,7 +132,7 @@ const tags = ['高颜值摆盘', '奶香浓郁', '适合约饭']
 
   .cover-plus {
     font-size: 56px;
-    color: var(--brand-500);
+    color: var(--peach-600);
   }
 
   .field {
@@ -169,8 +169,8 @@ const tags = ['高颜值摆盘', '奶香浓郁', '适合约饭']
   .input-box,
   .textarea-box {
     border-radius: 20px;
-    background: #f7faff;
-    border: 1px solid #e1ebff;
+    background: #fffaf4;
+    border: 1px solid #f1e2d2;
     color: var(--ink-700);
     font-size: 24px;
     line-height: 1.6;
@@ -193,7 +193,7 @@ const tags = ['高颜值摆盘', '奶香浓郁', '适合约饭']
 
   .score-star {
     font-size: 34px;
-    color: #ffb648;
+    color: var(--brand-500);
   }
 
   .score-value {
@@ -236,14 +236,14 @@ const tags = ['高颜值摆盘', '奶香浓郁', '适合约饭']
   }
 
   .draft-btn {
-    background: #eef4ff;
+    background: #fff3e2;
     color: var(--brand-600);
   }
 
   .publish-btn {
-    background: linear-gradient(135deg, #3476ff 0%, #59a7ff 100%);
+    background: linear-gradient(135deg, var(--brand-500) 0%, var(--peach-500) 100%);
     color: #fff;
-    box-shadow: 0 16px 24px rgba(52, 118, 255, 0.24);
+    box-shadow: 0 8px 16px rgba(220, 154, 95, 0.12);
   }
 }
 </style>

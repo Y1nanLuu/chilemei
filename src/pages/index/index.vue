@@ -3,7 +3,23 @@
     <view class="screen-frame">
       <view class="header">
         <view class="header-copy">
-          <text class="headline">Find something worth saving today.</text>
+          <view class="headline-wrap">
+            <text class="headline-kicker">今日心动存档 ✦</text>
+            <view class="headline-row">
+              <view class="headline" aria-label="把今天想记住的美味，轻轻存下来。">
+                <text
+                  v-for="(char, index) in headlineChars"
+                  :key="`${char}-${index}`"
+                  class="headline-char"
+                  :style="{ animationDelay: `${0.18 + index * 0.05}s` }"
+                >
+                  {{ char }}
+                </text>
+              </view>
+              <text class="headline-face">(•͈ᴗ•͈)◞♡</text>
+            </view>
+            <text class="headline-sub">说不定，下一口心动已经在和你招手啦 ~</text>
+          </view>
         </view>
       </view>
 
@@ -40,24 +56,6 @@
       </view>
 
       <view class="section-title">
-        <text class="title">Hot Spots</text>
-      </view>
-
-      <view class="restaurant-grid">
-        <view v-for="restaurant in restaurantCards" :key="restaurant.id" class="restaurant-card glass-card">
-          <image class="restaurant-image" :src="restaurant.image" mode="aspectFill" />
-          <view class="restaurant-body">
-            <text class="restaurant-name">{{ restaurant.name }}</text>
-            <text class="restaurant-theme">{{ restaurant.theme }}</text>
-            <view class="restaurant-score">
-              <text class="star">★</text>
-              <text>{{ restaurant.score }}</text>
-            </view>
-          </view>
-        </view>
-      </view>
-
-      <view class="section-title">
         <text class="title">Recommended</text>
       </view>
 
@@ -86,6 +84,8 @@
 <script setup lang="ts">
 import Taro from '@tarojs/taro'
 import { featuredDishes, restaurantCards } from '../../data/mock'
+
+const headlineChars = Array.from('把今天想记住的美味，轻轻存下来。')
 
 const openDetail = (id: string) => {
   Taro.navigateTo({
@@ -119,12 +119,16 @@ const openDetail = (id: string) => {
     min-width: 0;
     max-width: 100%;
   }
+  
+  .screen-frame {
+    padding: 0 2px;
+  }
 
   .header {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    margin-bottom: 28px;
+    margin-bottom: 24px;
     gap: 20px;
   }
 
@@ -133,8 +137,37 @@ const openDetail = (id: string) => {
     min-width: 0;
   }
 
+  .headline-wrap {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .headline-kicker {
+    align-self: flex-start;
+    padding: 8px 16px;
+    border-radius: 999px;
+    background: rgba(244, 177, 157, 0.18);
+    color: var(--peach-600);
+    font-size: 18px;
+    letter-spacing: 1px;
+    text-transform: lowercase;
+    animation: pop-in 0.7s ease-out both;
+  }
+
+  .headline-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
   .headline {
-    display: block;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    column-gap: 2px;
     font-size: 34px;
     line-height: 1.35;
     font-weight: 700;
@@ -142,20 +175,46 @@ const openDetail = (id: string) => {
     word-break: break-word;
   }
 
+  .headline-char {
+    opacity: 0;
+    transform: translateY(20px) scale(0.9);
+    animation: char-bounce-in 0.55s cubic-bezier(0.22, 1.1, 0.3, 1) forwards;
+  }
+
+  .headline-face {
+    flex-shrink: 0;
+    margin-top: 6px;
+    font-size: 28px;
+    line-height: 1.2;
+    opacity: 0;
+    animation:
+      face-pop 0.45s ease-out 0.95s forwards,
+      wiggle 2.8s ease-in-out 1.45s infinite;
+    transform-origin: center bottom;
+  }
+
+  .headline-sub {
+    display: block;
+    font-size: 20px;
+    line-height: 1.5;
+    color: var(--ink-500);
+    animation: float-up 0.8s ease-out 0.2s both;
+  }
+
   .search-box {
     display: flex;
     align-items: center;
-    gap: 18px;
+    gap: 16px;
     width: 100%;
-    padding: 24px 28px;
-    margin-bottom: 36px;
+    padding: 16px 16px;
+    margin-bottom: 30px;
     overflow: hidden;
   }
 
   .search-icon {
     flex-shrink: 0;
-    color: var(--brand-500);
-    font-size: 28px;
+    color: var(--brand-600);
+    font-size: 30px;
     line-height: 1;
   }
 
@@ -163,15 +222,25 @@ const openDetail = (id: string) => {
     flex: 1;
     min-width: 0;
     color: var(--ink-500);
-    font-size: 24px;
+    font-size: 28px;
     word-break: break-word;
+  }
+
+  .section-title {
+    margin-bottom: 16px;
+  }
+
+  .title {
+    font-size: 35px;
+    font-weight: 700;
+    color: var(--ink-900);
   }
 
   .hero-clip {
     width: 100%;
     overflow: hidden;
-    border-radius: 32px;
-    margin-bottom: 36px;
+    border-radius: 24px;
+    margin-bottom: 30px;
   }
 
   .hero-swiper {
@@ -204,8 +273,8 @@ const openDetail = (id: string) => {
     flex-direction: column;
     justify-content: space-between;
     width: 100%;
-    padding: 28px;
-    background: linear-gradient(180deg, rgba(7, 21, 48, 0.04) 18%, rgba(7, 21, 48, 0.66) 100%);
+    padding: 24px;
+    background: linear-gradient(180deg, rgba(70, 42, 19, 0.05) 18%, rgba(58, 35, 18, 0.56) 100%);
     color: #fff;
   }
 
@@ -248,15 +317,15 @@ const openDetail = (id: string) => {
   }
 
   .star {
-    color: #ffb648;
+    color: var(--brand-500);
   }
 
   .restaurant-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 20px;
+    gap: 16px;
     width: 100%;
-    margin-bottom: 36px;
+    margin-bottom: 30px;
     overflow: hidden;
   }
 
@@ -295,22 +364,23 @@ const openDetail = (id: string) => {
   .recommend-list {
     display: flex;
     flex-direction: column;
-    gap: 22px;
+    gap: 16px;
     width: 100%;
+    padding-bottom: 30px;
   }
 
   .recommend-card {
     display: flex;
     gap: 18px;
     width: 100%;
-    padding: 18px;
+    padding: 16px;
     overflow: hidden;
   }
 
   .recommend-image {
-    width: 152px;
-    height: 152px;
-    border-radius: 24px;
+    width: 140px;
+    height: 140px;
+    border-radius: 20px;
     flex-shrink: 0;
   }
 
@@ -325,7 +395,7 @@ const openDetail = (id: string) => {
     display: block;
     font-size: 20px;
     color: var(--ink-700);
-    line-height: 1.6;
+    line-height: 1.5;
     word-break: break-word;
   }
 
@@ -351,7 +421,71 @@ const openDetail = (id: string) => {
     flex-shrink: 0;
     font-size: 24px;
     font-weight: 700;
-    color: var(--brand-600);
+    color: var(--peach-600);
+  }
+
+  @keyframes float-up {
+    0% {
+      opacity: 0;
+      transform: translateY(18px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes char-bounce-in {
+    0% {
+      opacity: 0;
+      transform: translateY(20px) scale(0.88);
+    }
+    70% {
+      opacity: 1;
+      transform: translateY(-4px) scale(1.04);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  @keyframes face-pop {
+    0% {
+      opacity: 0;
+      transform: scale(0.7) rotate(-10deg);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1) rotate(0deg);
+    }
+  }
+
+  @keyframes pop-in {
+    0% {
+      opacity: 0;
+      transform: translateY(-8px) scale(0.92);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  @keyframes wiggle {
+    0%,
+    100% {
+      transform: rotate(0deg) translateY(0);
+    }
+    25% {
+      transform: rotate(-8deg) translateY(-2px);
+    }
+    50% {
+      transform: rotate(6deg) translateY(1px);
+    }
+    75% {
+      transform: rotate(-4deg) translateY(-1px);
+    }
   }
 }
 </style>

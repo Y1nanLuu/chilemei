@@ -1,20 +1,22 @@
 :root {
-  --brand-50: #eef5ff;
-  --brand-100: #dce9ff;
-  --brand-200: #c3d8ff;
-  --brand-500: #2f6bff;
-  --brand-600: #1f56db;
-  --ink-900: #122033;
-  --ink-700: #42506b;
-  --ink-500: #70809c;
-  --surface: #f4f8ff;
-  --card: rgba(255, 255, 255, 0.92);
+  --brand-50: #fff4e4;
+  --brand-100: #ffe6bf;
+  --brand-200: #ffd39d;
+  --brand-500: #f1c56d;
+  --brand-600: #dc9a5f;
+  --peach-500: #ee9a7f;
+  --peach-600: #df856a;
+  --ink-900: #332722;
+  --ink-700: #6b5c52;
+  --ink-500: #9e9084;
+  --surface: #ffffff;
+  --card: rgba(255, 255, 255, 0.96);
 }
 
 page {
-  background: linear-gradient(180deg, #edf4ff 0%, #f8fbff 42%, #f4f8ff 100%);
+  background: #ffffff;
   color: var(--ink-900);
-  font-family: 'Trebuchet MS', 'Segoe UI', sans-serif;
+  font-family: 'Trebuchet MS', 'Avenir Next', 'Segoe UI', sans-serif;
   overflow-x: hidden;
 }
 
@@ -32,14 +34,14 @@ page {
   min-height: 100vh;
   width: 100%;
   max-width: 100%;
-  padding: 48px 40px 260px;
+  padding: 48px 28px 260px;
   box-sizing: border-box;
   overflow-x: hidden;
 }
 
 .screen-frame {
-  width: calc(100% - 24px);
-  max-width: calc(100% - 24px);
+  width: calc(100% - 12px);
+  max-width: calc(100% - 12px);
   min-height: calc(100vh - 40px);
   margin: 0 auto;
   padding: 0;
@@ -81,9 +83,9 @@ page {
 
 .glass-card {
   background: var(--card);
-  border: 1px solid rgba(223, 232, 255, 0.95);
+  border: 1px solid rgba(238, 223, 205, 0.95);
   border-radius: 24px;
-  box-shadow: 0 16px 32px rgba(35, 74, 155, 0.08);
+  box-shadow: 0 10px 22px rgba(132, 101, 73, 0.05);
   max-width: 100%;
   overflow: hidden;
 }
@@ -102,7 +104,7 @@ page {
 .star-row {
   display: flex;
   gap: 6px;
-  color: #ffb648;
+  color: var(--brand-500);
 }
 
 view,
