@@ -5,13 +5,13 @@
         <view class="hero-top">
           <view class="hero-avatar">{{ avatarInitial }}</view>
           <view>
-            <text class="hero-name">{{ profile?.nickname || '未登录用户' }}</text>
-            <text class="hero-signature">{{ profile?.bio || '这里展示当前用户资料和当年的年度报告摘要。' }}</text>
+            <text class="hero-name">{{ profile?.nickname || 'Mia 同学' }}</text>
+            <text class="hero-signature">{{ profile?.bio || '偏爱轻食、烤物和所有看起来会发光的甜品。' }}</text>
           </view>
         </view>
         <view class="hero-actions">
-          <view class="follow-btn">GET /users/me</view>
-          <view class="share-btn">GET /reports/annual/{{ currentYear }}</view>
+          <view class="follow-btn">编辑资料</view>
+          <view class="share-btn">分享主页</view>
         </view>
       </view>
 
@@ -27,24 +27,24 @@
         </view>
 
         <view class="section-title">
-          <text class="title">年度标签</text>
-          <text class="caption">来自年度报告 title_tags</text>
+          <text class="title">互动功能</text>
+          <text class="caption">评论、点赞、收藏、想吃</text>
         </view>
 
         <view class="action-list">
-          <view v-for="tag in titleTags" :key="tag" class="action-card glass-card">
-            <text class="action-name">{{ tag }}</text>
-            <text class="action-arrow">标签</text>
+          <view v-for="action in ['评论', '点赞', '收藏', '想吃']" :key="action" class="action-card glass-card">
+            <text class="action-name">{{ action }}</text>
+            <text class="action-arrow">→</text>
           </view>
         </view>
 
         <view class="favorites glass-card">
-          <text class="favorite-title">高频食物</text>
-          <view v-for="food in topFoods" :key="food.name" class="favorite-item">
-            <view class="favorite-image placeholder-box">{{ food.count }}</view>
+          <text class="favorite-title">最近收藏</text>
+          <view v-for="food in topFoods.slice(0, 2)" :key="food.name" class="favorite-item">
+            <view class="favorite-image placeholder-box">{{ food.count || '0' }}</view>
             <view class="favorite-content">
-              <text class="favorite-name">{{ food.name }}</text>
-              <text class="favorite-meta">出现 {{ food.count }} 次</text>
+              <text class="favorite-name">{{ food.name || '示例食物' }}</text>
+              <text class="favorite-meta">示例餐厅 · ￥0</text>
             </view>
           </view>
           <view v-if="topFoods.length === 0" class="favorite-meta">年度报告中暂时没有高频食物。</view>
@@ -69,7 +69,6 @@ const loading = ref(false)
 const errorMessage = ref('')
 
 const avatarInitial = computed(() => (profile.value?.nickname || 'M').slice(0, 1).toUpperCase())
-const titleTags = computed(() => report.value?.title_tags || [])
 const topFoods = computed(() => report.value?.top_foods || [])
 const profileHighlights = computed(() => {
   if (!report.value) {
@@ -122,8 +121,8 @@ useDidShow(() => {
   .profile-hero {
     padding: 24px;
     margin-bottom: 22px;
-    background: linear-gradient(135deg, #2f6bff 0%, #7bbcff 100%);
-    color: #fff;
+    background: linear-gradient(135deg, #fff4df 0%, #f8c66d 100%);
+    color: var(--ink-900);
   }
 
   .hero-top {
@@ -142,7 +141,7 @@ useDidShow(() => {
     width: 82px;
     height: 82px;
     border-radius: 26px;
-    background: rgba(255, 255, 255, 0.18);
+    background: rgba(255, 255, 255, 0.42);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -168,7 +167,7 @@ useDidShow(() => {
     display: block;
     font-size: 22px;
     line-height: 1.6;
-    color: rgba(255, 255, 255, 0.82);
+    color: rgba(51, 39, 34, 0.72);
     word-break: break-word;
   }
 
@@ -186,18 +185,18 @@ useDidShow(() => {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 20px;
+    font-size: 22px;
     font-weight: 700;
   }
 
   .follow-btn {
-    background: #fff;
-    color: var(--brand-600);
+    background: #fffaf4;
+    color: var(--peach-600);
   }
 
   .share-btn {
-    background: rgba(255, 255, 255, 0.16);
-    color: #fff;
+    background: rgba(255, 250, 244, 0.72);
+    color: var(--ink-900);
   }
 
   .stats-grid {
@@ -226,6 +225,24 @@ useDidShow(() => {
     color: var(--ink-500);
   }
 
+  .section-title {
+    margin-bottom: 16px;
+  }
+
+  .title {
+    display: block;
+    font-size: 31px;
+    font-weight: 700;
+    color: #5e4a42;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+
+  .caption {
+    font-size: 20px;
+    color: var(--ink-500);
+  }
+
   .action-list {
     display: flex;
     flex-direction: column;
@@ -245,7 +262,7 @@ useDidShow(() => {
   }
 
   .action-arrow {
-    color: var(--brand-600);
+    color: var(--peach-600);
     font-size: 24px;
   }
 
@@ -263,6 +280,13 @@ useDidShow(() => {
 
   .favorite-item + .favorite-item {
     margin-top: 14px;
+  }
+
+  .favorite-image {
+    width: 124px;
+    height: 124px;
+    border-radius: 18px;
+    flex-shrink: 0;
   }
 
   .favorite-content {

@@ -412,6 +412,17 @@ useDidShow(() => {
 
 <style lang="scss">
 .detail-page {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 82% 7%, rgba(255, 210, 195, 0.82), transparent 20%),
+    radial-gradient(circle at 16% 12%, rgba(231, 252, 246, 0.94), transparent 24%),
+    radial-gradient(circle at 52% 0%, rgba(255, 241, 233, 0.85), transparent 26%),
+    linear-gradient(180deg, #f4fffd 0%, #f6fffb 24%, #fffaf6 58%, #fff2ea 100%);
+
   .cover-image {
     width: 100%;
     height: 340px;
@@ -444,7 +455,7 @@ useDidShow(() => {
     width: 58px;
     height: 58px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #2f6bff 0%, #7dbbff 100%);
+    background: linear-gradient(135deg, var(--brand-500) 0%, var(--peach-500) 100%);
     color: #fff;
     font-size: 26px;
     font-weight: 700;
@@ -464,13 +475,14 @@ useDidShow(() => {
   .detail-subtitle,
   .comment-time,
   .comment-count,
-  .empty-comments {
+  .empty-comments,
+  .tip-text {
     font-size: 18px;
     color: var(--ink-500);
   }
 
   .score-card {
-    width: 132px;
+    width: 112px;
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
@@ -479,7 +491,7 @@ useDidShow(() => {
   }
 
   .score-value {
-    font-size: 28px;
+    font-size: 34px;
     font-weight: 700;
     color: var(--brand-600);
     margin-bottom: 8px;
@@ -640,6 +652,26 @@ useDidShow(() => {
   .comment-user {
     font-size: 22px;
     font-weight: 700;
+  }
+
+  .tip-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .tip-item {
+    display: flex;
+    gap: 12px;
+  }
+
+  .tip-dot {
+    width: 12px;
+    height: 12px;
+    margin-top: 10px;
+    border-radius: 50%;
+    background: var(--peach-500);
+    flex-shrink: 0;
   }
 }
 </style>

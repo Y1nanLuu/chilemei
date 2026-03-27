@@ -3,7 +3,6 @@
     <view class="screen-frame">
       <view class="section-title">
         <text class="title">热度榜单</text>
-        <text class="caption">接口：GET /foods/rankings</text>
       </view>
 
       <view class="tabs glass-card">
@@ -104,6 +103,12 @@ useDidShow(() => {
 
 <style lang="scss">
 .rank-page {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  min-height: 100vh;
+
   .tabs {
     display: flex;
     gap: 10px;
@@ -124,9 +129,9 @@ useDidShow(() => {
   }
 
   .tab-item.active {
-    background: linear-gradient(135deg, #2f6bff 0%, #68b2ff 100%);
-    color: #fff;
-    box-shadow: 0 14px 24px rgba(47, 107, 255, 0.18);
+    background: linear-gradient(135deg, var(--brand-500) 0%, var(--peach-500) 100%);
+    color: #f5eee6ff;
+    box-shadow: 0 8px 16px rgba(220, 154, 95, 0.1);
   }
 
   .board-list {
@@ -146,7 +151,7 @@ useDidShow(() => {
     width: 56px;
     height: 56px;
     border-radius: 18px;
-    background: #dce8ff;
+    background: #e3e9f5ff;
     color: var(--brand-600);
     font-size: 26px;
     font-weight: 800;

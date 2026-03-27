@@ -4,6 +4,24 @@
   --brand-200: #c3d8ff;
   --brand-500: #2f6bff;
   --brand-600: #1f56db;
+.tab-item {
+  flex: 1;
+  height: 72px;
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-500);
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.tab-item.active {  /* 关键：激活状态的样式 */
+  background: linear-gradient(135deg, var(--brand-500) 0%, var(--peach-500) 100%);
+  color: rgba(10, 190, 130, 0.733);
+  box-shadow: 0 8px 16px rgba(220, 154, 95, 0.1);
+}  --peach-500: #f0b65d;
+  --peach-600: #dc9642;
   --ink-900: #122033;
   --ink-700: #42506b;
   --ink-500: #70809c;

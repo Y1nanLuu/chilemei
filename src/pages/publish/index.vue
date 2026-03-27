@@ -1,98 +1,75 @@
 <template>
   <view class="mobile-shell publish-page">
     <view class="screen-frame">
-      <view class="hero glass-card">
-        <text class="hero-tag">POST /foods</text>
-        <text class="hero-title">发布新的食物记录</text>
-        <text class="hero-desc">按后端文档，这里提交 food 基础信息和本次打卡评价。</text>
+      <view class="header">
+        <text class="title">发布美食</text>
+        <text class="caption">记录今天吃的好东西</text>
       </view>
 
-      <view class="composer glass-card">
+      <view class="glass-card">
         <view class="field">
-          <text class="label">食物名称</text>
-          <input class="input-box" :value="form.name" placeholder="例如：红烧牛肉面" @input="handleNameInput" />
+          <text class="field-label">美食名称</text>
+          <input class="field-input" :value="dto.food.name" placeholder="今天吃了什么？" @input="updateFoodField('name', $event.detail.value)" />
         </view>
 
         <view class="field">
-          <text class="label">位置</text>
-          <input class="input-box" :value="form.location" placeholder="例如：一食堂二楼" @input="handleLocationInput" />
+          <text class="field-label">餐厅/地点</text>
+          <input class="field-input" :value="dto.food.location" placeholder="在哪里吃的？" @input="updateFoodField('location', $event.detail.value)" />
         </view>
 
-        <view class="field row">
-          <view class="field-half">
-            <text class="label">价格</text>
-            <input class="input-box" type="digit" :value="form.price" placeholder="18.5" @input="handlePriceInput" />
-          </view>
-          <view class="field-half">
-            <text class="label">评价等级</text>
-            <picker
-              class="input-box picker-box"
-              mode="selector"
-              :range="ratingLevels"
-              :value="ratingLevelIndex"
-              @change="onRatingLevelChange"
+        <view class="field">
+          <text class="field-label">价格</text>
+          <input class="field-input" type="number" :value="dto.food.price" placeholder="花了多少钱？" @input="updateFoodField('price', $event.detail.value)" />
+        </view>
+
+        <view class="field">
+          <text class="field-label">描述</text>
+          <textarea class="field-textarea" :value="dto.review_text" placeholder="有什么想说的？" @input="updateField('review_text', $event.detail.value)" />
+        </view>
+
+        <view class="field">
+          <text class="field-label">心情</text>
+          <view class="mood-row">
+            <view 
+              v-for="mood in ['like', 'dislike']" 
+              :key="mood"
+              class="mood-option" 
+              :class="{ active: dto.sentiment === mood }"
+              @click="setSentiment(mood as 'like' | 'dislike')"
             >
-              {{ form.ratingLevel }}
-            </picker>
+              <text>{{ mood === 'like' ? '👍 喜欢' : '👎 不喜欢' }}</text>
+            </view>
           </view>
         </view>
 
         <view class="field">
-          <text class="label">情绪标签</text>
-          <view class="tag-row">
-            <view class="choice-chip" :class="{ active: form.sentiment === 'like' }" @click="updateField('sentiment', 'like')">喜欢</view>
-            <view class="choice-chip" :class="{ active: form.sentiment === 'dislike' }" @click="updateField('sentiment', 'dislike')">劝退</view>
+          <text class="field-label">评分</text>
+          <view class="score-row">
+            <view 
+              v-for="i in [1, 2, 3, 4, 5]" 
+              :key="i"
+              class="score-star"
+              :class="{ active: dto.rating_level >= i }"
+              @click="setRatingLevel(i)"
+            >
+              ★
+            </view>
           </view>
         </view>
 
         <view class="field">
-          <view class="image-head">
-            <text class="label">食物图片</text>
-            <view class="image-action" @click="chooseImage('food')">
-              {{ uploadState.food ? '上传中...' : '从相册或相机选择' }}
+          <text class="field-label">图片</text>
+          <view class="image-picker" @click="pickImage">
+            <image v-if="dto.food.image_url" class="preview-image" :src="dto.food.image_url" mode="aspectFill" />
+            <view v-else class="placeholder">
+              <text class="icon">📷</text>
+              <text class="text">点击上传图片</text>
             </view>
           </view>
-          <view v-if="foodPreviewUrl" class="image-preview-card">
-            <image class="preview-image" :src="foodPreviewUrl" mode="aspectFill" />
-            <view class="preview-actions">
-              <text class="preview-path">{{ form.foodImageUrl }}</text>
-              <view class="clear-link" @click="clearImage('food')">移除</view>
-            </view>
-          </view>
-          <view v-else class="image-placeholder">还没有选择食物图片</view>
         </view>
 
-        <view class="field">
-          <view class="image-head">
-            <text class="label">记录图片</text>
-            <view class="image-action" @click="chooseImage('record')">
-              {{ uploadState.record ? '上传中...' : '从相册或相机选择' }}
-            </view>
-          </view>
-          <view v-if="recordPreviewUrl" class="image-preview-card">
-            <image class="preview-image" :src="recordPreviewUrl" mode="aspectFill" />
-            <view class="preview-actions">
-              <text class="preview-path">{{ form.recordImageUrl }}</text>
-              <view class="clear-link" @click="clearImage('record')">移除</view>
-            </view>
-          </view>
-          <view v-else class="image-placeholder">还没有选择记录图片</view>
-        </view>
-
-        <view class="field">
-          <text class="label">评价内容</text>
-          <textarea
-            class="textarea-box"
-            :value="form.reviewText"
-            maxlength="300"
-            placeholder="写下这次打卡感受"
-            @input="handleReviewTextInput"
-          />
-        </view>
-
-        <view class="actions">
-          <view class="draft-btn" @click="fillDemo">填充示例</view>
-          <view class="publish-btn" @click="submitRecord">立即发布</view>
+        <view class="submit-btn" @click="onSubmit">
+          {{ loading ? '发布中...' : '发布美食' }}
         </view>
       </view>
     </view>
@@ -101,367 +78,262 @@
 
 <script setup lang="ts">
 import Taro from '@tarojs/taro'
-import { computed, reactive } from 'vue'
+import { reactive, ref } from 'vue'
 import { createFoodRecord, uploadFoodImage } from '../../api/foods'
-import type { CreateFoodRecordPayload, Sentiment } from '../../api/types'
 import { hasAccessToken } from '../../utils/auth'
-import { RATING_LEVEL_OPTIONS, type RatingLevelLabel, ratingLabelToValue } from '../../utils/rating'
 
-type ImageKind = 'food' | 'record'
-
-const ratingLevels = RATING_LEVEL_OPTIONS.map((item) => item.label)
-
-const form = reactive({
-  name: '',
-  location: '',
-  price: '',
-  ratingLevel: '顶级' as RatingLevelLabel,
-  sentiment: 'like' as Sentiment,
-  foodImageUrl: '',
-  recordImageUrl: '',
-  reviewText: '',
+const dto = reactive({
+  food: {
+    name: '',
+    location: '',
+    price: '',
+    image_url: '',
+  },
+  sentiment: 'like' as 'like' | 'dislike',
+  rating_level: 5,
+  review_text: '',
+  image_url: '',
 })
+const loading = ref(false)
 
-const preview = reactive({
-  food: '',
-  record: '',
-})
-
-const uploadState = reactive({
-  food: false,
-  record: false,
-})
-
-const ratingLevelIndex = computed(() => {
-  const index = ratingLevels.findIndex((item) => item === form.ratingLevel)
-  return index < 0 ? 0 : index
-})
-
-const foodPreviewUrl = computed(() => preview.food || form.foodImageUrl)
-const recordPreviewUrl = computed(() => preview.record || form.recordImageUrl)
-
-const updateField = (field: keyof typeof form, value: string) => {
-  form[field] = value as never
+const updateFoodField = (field: keyof typeof dto.food, value: string) => {
+  dto.food[field] = value
 }
 
-const handleNameInput = (event) => {
-  updateField('name', event.detail.value)
+const updateField = (field: 'review_text' | 'image_url', value: string) => {
+  dto[field] = value
 }
 
-const handleLocationInput = (event) => {
-  updateField('location', event.detail.value)
+const setSentiment = (value: 'like' | 'dislike') => {
+  dto.sentiment = value
 }
 
-const handlePriceInput = (event) => {
-  updateField('price', event.detail.value)
+const setRatingLevel = (value: number) => {
+  dto.rating_level = value
 }
 
-const handleReviewTextInput = (event) => {
-  updateField('reviewText', event.detail.value)
-}
-
-const onRatingLevelChange = (event) => {
-  form.ratingLevel = (ratingLevels[event.detail.value] || ratingLevels[0]) as RatingLevelLabel
-}
-
-const chooseImage = async (kind: ImageKind) => {
-  if (!hasAccessToken()) {
-    Taro.showToast({ title: '请先登录后再上传图片', icon: 'none' })
-    return
-  }
-
+const pickImage = async () => {
   try {
-    const result = await Taro.chooseMedia({
+    const res = await Taro.chooseImage({
       count: 1,
-      mediaType: ['image'],
+      sizeType: ['compressed'],
       sourceType: ['album', 'camera'],
-      maxDuration: 30,
-      camera: 'back',
     })
 
-    const tempFilePath = result.tempFiles?.[0]?.tempFilePath
-
-    if (!tempFilePath) {
-      Taro.showToast({ title: '未获取到图片', icon: 'none' })
-      return
+    if (res.tempFilePaths && res.tempFilePaths[0]) {
+      loading.value = true
+      const uploadRes = await uploadFoodImage(res.tempFilePaths[0])
+      dto.food.image_url = uploadRes.image_url
+      dto.image_url = uploadRes.image_url
     }
-
-    preview[kind] = tempFilePath
-    uploadState[kind] = true
-
-    const uploadResult = await uploadFoodImage(tempFilePath)
-
-    if (kind === 'food') {
-      form.foodImageUrl = uploadResult.image_url
-    } else {
-      form.recordImageUrl = uploadResult.image_url
-    }
-
-    Taro.showToast({ title: '图片上传成功', icon: 'success' })
   } catch (error) {
-    const errMsg = error instanceof Error ? error.message : ''
-
-    if (errMsg.includes('cancel')) {
-      return
-    }
-
-    Taro.showToast({ title: errMsg || '选择图片失败', icon: 'none' })
+    const message = error instanceof Error ? error.message : '上传失败'
+    Taro.showToast({ title: message, icon: 'none' })
   } finally {
-    uploadState[kind] = false
+    loading.value = false
   }
 }
 
-const clearImage = (kind: ImageKind) => {
-  preview[kind] = ''
-
-  if (kind === 'food') {
-    form.foodImageUrl = ''
-    return
-  }
-
-  form.recordImageUrl = ''
-}
-
-const fillDemo = () => {
-  form.name = '红烧牛肉面'
-  form.location = '一食堂二楼'
-  form.price = '18.5'
-  form.ratingLevel = '顶级'
-  form.sentiment = 'like'
-  form.foodImageUrl = ''
-  form.recordImageUrl = ''
-  form.reviewText = '汤很浓，面也劲道'
-  preview.food = ''
-  preview.record = ''
-}
-
-const buildPayload = (): CreateFoodRecordPayload | null => {
-  if (!form.name || !form.location || !form.price || !form.reviewText) {
-    return null
-  }
-
-  return {
-    food: {
-      name: form.name,
-      location: form.location,
-      price: Number(form.price),
-      ...(form.foodImageUrl ? { image_url: form.foodImageUrl } : {}),
-    },
-    sentiment: form.sentiment,
-    rating_level: ratingLabelToValue(form.ratingLevel),
-    review_text: form.reviewText,
-    ...(form.recordImageUrl ? { image_url: form.recordImageUrl } : {}),
-  }
-}
-
-const submitRecord = async () => {
+const onSubmit = async () => {
   if (!hasAccessToken()) {
-    Taro.showToast({ title: '请先登录后再发布', icon: 'none' })
+    Taro.showToast({ title: '请先登录', icon: 'none' })
     return
   }
 
-  if (uploadState.food || uploadState.record) {
-    Taro.showToast({ title: '图片上传中，请稍候', icon: 'none' })
+  if (!dto.food.name.trim()) {
+    Taro.showToast({ title: '请输入美食名称', icon: 'none' })
     return
   }
-
-  const payload = buildPayload()
-
-  if (!payload) {
-    Taro.showToast({ title: '请填写完整信息', icon: 'none' })
+  if (!dto.food.location.trim()) {
+    Taro.showToast({ title: '请输入餐厅/地点', icon: 'none' })
+    return
+  }
+  if (!dto.food.price) {
+    Taro.showToast({ title: '请输入价格', icon: 'none' })
     return
   }
 
   try {
-    const result = await createFoodRecord(payload)
-    Taro.showToast({ title: '发布成功', icon: 'success' })
-    Taro.navigateTo({
-      url: `/pages/check/index?id=${result.id}`,
+    loading.value = true
+    await createFoodRecord({
+      food: {
+        name: dto.food.name.trim(),
+        location: dto.food.location.trim(),
+        price: Number(dto.food.price),
+        image_url: dto.food.image_url || undefined,
+      },
+      sentiment: dto.sentiment,
+      rating_level: dto.rating_level,
+      review_text: dto.review_text,
+      image_url: dto.image_url || undefined,
     })
+
+    Taro.showToast({ title: '发布成功', icon: 'success' })
+    
+    dto.food.name = ''
+    dto.food.location = ''
+    dto.food.price = ''
+    dto.food.image_url = ''
+    dto.sentiment = 'like'
+    dto.rating_level = 5
+    dto.review_text = ''
+    dto.image_url = ''
+
+    Taro.switchTab({ url: '/pages/index/index' })
   } catch (error) {
     const message = error instanceof Error ? error.message : '发布失败'
     Taro.showToast({ title: message, icon: 'none' })
+  } finally {
+    loading.value = false
   }
 }
 </script>
 
 <style lang="scss">
 .publish-page {
-  .hero {
-    padding: 28px;
-    background: linear-gradient(135deg, #3476ff 0%, #59a7ff 100%);
-    color: #fff;
+  .header {
+    padding: 28px 28px 12px;
   }
 
-  .hero-tag {
-    display: inline-block;
-    padding: 8px 14px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.18);
-    font-size: 20px;
-    margin-bottom: 16px;
-  }
-
-  .hero-title {
+  .title {
     display: block;
-    font-size: 38px;
-    line-height: 1.35;
-    font-weight: 700;
-    margin-bottom: 12px;
+    font-size: 44px;
+    font-weight: 800;
+    margin-bottom: 6px;
+    color: var(--ink-900);
   }
 
-  .hero-desc {
+  .caption {
     display: block;
     font-size: 24px;
-    line-height: 1.6;
-    color: rgba(255, 255, 255, 0.84);
+    color: var(--ink-600);
   }
 
-  .composer {
-    margin-top: 22px;
-    padding: 24px;
+  .glass-card {
+    margin: 12px 28px 28px;
+    padding: 28px;
   }
 
   .field {
-    margin-bottom: 24px;
+    margin-bottom: 32px;
   }
 
-  .row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 16px;
-  }
-
-  .field-half {
-    flex: 1 1 0;
-    min-width: 0;
-  }
-
-  .label {
+  .field-label {
     display: block;
-    font-size: 24px;
-    font-weight: 600;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--ink-800);
     margin-bottom: 12px;
   }
 
-  .image-head {
+  .field-input,
+  .field-textarea {
+    width: 100%;
+    padding: 20px 24px;
+    border-radius: 24px;
+    background: #fff;
+    box-shadow: 0 18px 40px rgba(28, 56, 118, 0.08);
+    font-size: 26px;
+    color: var(--ink-900);
+    box-sizing: border-box;
+    border: none;
+    outline: none;
+  }
+
+  .field-textarea {
+    min-height: 200px;
+    resize: none;
+  }
+
+  .image-picker {
+    width: 100%;
+    aspect-ratio: 4/3;
+    border-radius: 28px;
+    background: #fff;
+    box-shadow: 0 18px 40px rgba(28, 56, 118, 0.08);
+    overflow: hidden;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    margin-bottom: 12px;
-  }
-
-  .image-action,
-  .clear-link {
-    color: var(--brand-600);
-    font-size: 20px;
-    font-weight: 600;
-  }
-
-  .input-box,
-  .textarea-box,
-  .picker-box {
-    width: 100%;
-    border-radius: 20px;
-    background: #f7faff;
-    border: 1px solid #e1ebff;
-    color: var(--ink-700);
-    font-size: 24px;
-    line-height: 1.6;
-    box-sizing: border-box;
-  }
-
-  .input-box,
-  .picker-box {
-    padding: 20px;
-    min-height: 80px;
-  }
-
-  .textarea-box {
-    min-height: 160px;
-    padding: 20px;
-  }
-
-  .image-preview-card,
-  .image-placeholder {
-    border-radius: 20px;
-    background: #f7faff;
-    border: 1px solid #e1ebff;
-    overflow: hidden;
-  }
-
-  .image-placeholder {
-    padding: 24px 20px;
-    color: var(--ink-500);
-    font-size: 22px;
+    justify-content: center;
   }
 
   .preview-image {
     width: 100%;
-    height: 260px;
-    display: block;
+    height: 100%;
   }
 
-  .preview-actions {
-    padding: 16px 18px;
-  }
-
-  .preview-path {
-    display: block;
-    font-size: 18px;
-    line-height: 1.6;
-    color: var(--ink-500);
-    word-break: break-all;
-    margin-bottom: 10px;
-  }
-
-  .tag-row {
+  .placeholder {
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
+    align-items: center;
     gap: 12px;
+    color: var(--ink-400);
   }
 
-  .choice-chip {
-    padding: 12px 18px;
-    border-radius: 999px;
-    background: var(--brand-50);
-    color: var(--brand-600);
-    font-size: 22px;
-    font-weight: 600;
+  .icon {
+    font-size: 64px;
   }
 
-  .choice-chip.active {
-    background: linear-gradient(135deg, #3476ff 0%, #59a7ff 100%);
-    color: #fff;
+  .text {
+    font-size: 24px;
   }
 
-  .actions {
+  .mood-row {
     display: flex;
-    gap: 14px;
+    gap: 16px;
   }
 
-  .draft-btn,
-  .publish-btn {
+  .mood-option {
     flex: 1;
     height: 88px;
-    border-radius: 22px;
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.72);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 26px;
     font-weight: 700;
+    color: var(--ink-600);
+    transition: all 0.2s ease;
   }
 
-  .draft-btn {
-    background: #eef4ff;
-    color: var(--brand-600);
-  }
-
-  .publish-btn {
-    background: linear-gradient(135deg, #3476ff 0%, #59a7ff 100%);
+  .mood-option.active {
+    background: linear-gradient(135deg, var(--brand-500) 0%, var(--peach-500) 100%);
     color: #fff;
-    box-shadow: 0 16px 24px rgba(52, 118, 255, 0.24);
+    box-shadow: 0 12px 28px rgba(220, 154, 95, 0.25);
+  }
+
+  .score-row {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+  }
+
+  .score-star {
+    font-size: 48px;
+    color: rgba(200, 200, 200, 0.5);
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .score-star.active {
+    color: #ffc107;
+    text-shadow: 0 2px 12px rgba(255, 193, 7, 0.4);
+  }
+
+  .submit-btn {
+    width: 100%;
+    height: 96px;
+    border-radius: 28px;
+    font-size: 30px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 16px;
+    background: linear-gradient(135deg, var(--brand-500) 0%, var(--peach-500) 100%);
+    color: #fff;
+    box-shadow: 0 12px 28px rgba(220, 154, 95, 0.25);
   }
 }
 </style>

@@ -120,9 +120,45 @@ useDidShow(() => {
 
 <style lang="scss">
 .register-page {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 82% 7%, rgba(255, 210, 195, 0.82), transparent 20%),
+    radial-gradient(circle at 16% 12%, rgba(231, 252, 246, 0.94), transparent 24%),
+    radial-gradient(circle at 52% 0%, rgba(255, 241, 233, 0.85), transparent 26%),
+    linear-gradient(180deg, #f4fffd 0%, #f6fffb 24%, #fffaf6 58%, #fff2ea 100%);
+
   .welcome-card {
     padding: 28px;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(236, 244, 255, 0.96) 100%);
+    background: linear-gradient(180deg, rgba(255, 252, 247, 0.96) 0%, rgba(255, 242, 224, 0.96) 100%);
+  }
+
+  .preview-card {
+    overflow: hidden;
+    border-radius: 24px;
+    background: #fff;
+    box-shadow: 0 10px 22px rgba(132, 101, 73, 0.06);
+    margin-bottom: 24px;
+  }
+
+  .preview-image {
+    width: 100%;
+    height: 360px;
+  }
+
+  .preview-info {
+    padding: 20px;
+  }
+
+  .preview-name {
+    display: block;
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  .preview-meta {
+    font-size: 22px;
+    color: var(--ink-500);
   }
 
   .welcome-tag {
@@ -195,9 +231,9 @@ useDidShow(() => {
   }
 
   .enter-btn {
-    background: linear-gradient(135deg, #2f6bff 0%, #6cb6ff 100%);
+    background: linear-gradient(135deg, var(--brand-500) 0%, var(--peach-500) 100%);
     color: #fff;
-    box-shadow: 0 18px 30px rgba(47, 107, 255, 0.24);
+    box-shadow: 0 8px 16px rgba(220, 154, 95, 0.12);
   }
 
   .wechat-btn {

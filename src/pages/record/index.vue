@@ -1,4 +1,4 @@
-﻿<template>
+﻿﻿<template>
   <view class="mobile-shell record-page">
     <view class="screen-frame">
       <view class="section-title">
@@ -7,9 +7,9 @@
       </view>
 
       <view class="summary glass-card">
-        <view class="summary-pill">累计 {{ records.length }} 条</view>
+        <view class="summary-pill">本周记录 {{ records.length }} 餐</view>
         <text class="summary-title">{{ summaryTitle }}</text>
-        <text class="summary-copy">这里展示的是当前登录用户自己的打卡记录，时间按最近上传优先排序。</text>
+        <text class="summary-copy">时间轴保留每次用餐的照片、情绪和热量，让回看更有画面感。</text>
       </view>
 
       <view v-if="loading" class="summary glass-card">加载中...</view>
@@ -111,6 +111,12 @@ useDidShow(() => {
 
 <style lang="scss">
 .record-page {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  min-height: 100vh;
+
   .summary {
     padding: 24px;
     margin-bottom: 24px;
@@ -120,8 +126,8 @@ useDidShow(() => {
     display: inline-flex;
     padding: 8px 14px;
     border-radius: 999px;
-    background: var(--brand-50);
-    color: var(--brand-600);
+    background: #fff0d8;
+    color: var(--peach-600);
     font-size: 20px;
     margin-bottom: 14px;
   }
@@ -157,15 +163,15 @@ useDidShow(() => {
     width: 22px;
     height: 22px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #2f6bff 0%, #74b7ff 100%);
-    box-shadow: 0 0 0 8px rgba(47, 107, 255, 0.12);
+    background: linear-gradient(135deg, var(--brand-500) 0%, var(--peach-500) 100%);
+    box-shadow: 0 0 0 5px rgba(241, 197, 109, 0.12);
   }
 
   .timeline-line {
     width: 2px;
     flex: 1;
     margin-top: 10px;
-    background: linear-gradient(180deg, rgba(47, 107, 255, 0.45) 0%, rgba(47, 107, 255, 0.06) 100%);
+    background: linear-gradient(180deg, rgba(220, 154, 95, 0.45) 0%, rgba(220, 154, 95, 0.06) 100%);
   }
 
   .timeline-card {
@@ -198,7 +204,7 @@ useDidShow(() => {
   .timeline-mood {
     padding: 8px 14px;
     border-radius: 999px;
-    background: #edf4ff;
+    background: #fff0d8;
     color: var(--brand-600);
     font-size: 20px;
   }
