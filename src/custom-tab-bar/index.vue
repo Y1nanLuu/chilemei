@@ -40,11 +40,11 @@ type TabItem = {
 declare const getCurrentPages: () => Array<{ route?: string }>
 
 const tabs: TabItem[] = [
-  { pagePath: 'pages/index/index', text: '首页' },
-  { pagePath: 'pages/record/index', text: '记录' },
+  { pagePath: 'pages/index/index', text: '棣栭〉' },
+  { pagePath: 'pages/record/index', text: '璁板綍' },
   { pagePath: 'pages/publish/index', text: '+' },
-  { pagePath: 'pages/rank/index', text: '榜单' },
-  { pagePath: 'pages/profile/index', text: '我的' },
+  { pagePath: 'pages/rank/index', text: '姒滃崟' },
+  { pagePath: 'pages/profile/index', text: '鎴戠殑' },
 ]
 
 const leftItems = tabs.slice(0, 2)
@@ -56,13 +56,12 @@ const currentPath = ref('')
 const syncCurrentPath = () => {
   const pages = getCurrentPages?.() ?? []
   const route = pages[pages.length - 1]?.route ?? ''
-  // currentPath.value = route ? `/${route}` : ''
   currentPath.value = route
 }
 
 const switchTo = (pagePath: string) => {
   const target = `/${pagePath}`
-  if (currentPath.value === target) {
+  if (currentPath.value === target || currentPath.value === pagePath) {
     return
   }
 
@@ -110,7 +109,7 @@ useDidShow(syncCurrentPath)
   font-weight: 450;
   color: #b8a99c;
   white-space: nowrap;
-  transition: all 0.2s
+  transition: all 0.2s;
 }
 
 .nav-item.active .nav-label {
@@ -145,6 +144,6 @@ useDidShow(syncCurrentPath)
 
 .plus-button.active {
   transform: scale(1.05);
-  filter: brightness(1.1)
+  filter: brightness(1.1);
 }
 </style>
