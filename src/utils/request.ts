@@ -30,6 +30,10 @@ const joinUrl = (url: string) => {
   return `${API_BASE_URL}${API_PREFIX}${url}`
 }
 
+export const getApiUrl = (url: string) => {
+  return joinUrl(url)
+}
+
 const getErrorMessage = (data: ApiErrorResponse | string | undefined, fallback: string) => {
   if (typeof data === 'string' && data.trim()) {
     return data

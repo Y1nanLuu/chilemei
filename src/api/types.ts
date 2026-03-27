@@ -120,3 +120,9 @@ export type UpdateFoodRecordPayload = {
 export type CreateCommentPayload = {
   content: string
 }
+
+export type UploadImageResponse = {
+  image_url: string
+  stored_path: string
+  original_filename: string
+}

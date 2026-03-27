@@ -6,8 +6,11 @@ import type {
   FoodRankingItem,
   FoodRecord,
   UpdateFoodRecordPayload,
+  UploadImageResponse,
 } from './types'
-import { request } from '../utils/request'
+import Taro from '@tarojs/taro'
+import { getAccessToken } from '../utils/auth'
+import { getApiUrl, request } from '../utils/request'
 
 const toQueryString = (query: Record<string, string | number | boolean | undefined>) => {
   const queryString = Object.entries(query)
@@ -96,4 +99,34 @@ export const createFoodRecordComment = (
     method: 'POST',
     data: payload,
   })
+}
+
+export const uploadFoodImage = async (filePath: string) => {
+  const token = getAccessToken()
+
+  const response = await Taro.uploadFile({
+    url: getApiUrl('/foods/upload-image'),
+    filePath,
+    name: 'file',
+    header: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  })
+
+  let data: (UploadImageResponse & {
+    detail?: string
+    message?: string
+  }) | null = null
+
+  try {
+    data = JSON.parse(response.data || '{}')
+  } catch {
+    throw new Error('图片上传返回解析失败')
+  }
+
+  if (response.statusCode >= 200 && response.statusCode < 300 && data?.image_url) {
+    return data
+  }
+
+  throw new Error(data?.detail || data?.message || '图片上传失败')
 }
