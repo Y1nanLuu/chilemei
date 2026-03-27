@@ -190,13 +190,21 @@ const loadData = async () => {
   errorMessage.value = ''
 
   try {
-    const [daily, personalized] = await Promise.all([
-      getDailyRecommendations(),
-      getPersonalizedRecommendations(),
-    ])
+    const personalizedPromise = getPersonalizedRecommendations()
+    let daily: FoodRecord | null = null
 
-    dailyRecords.value = daily
-    personalizedRecords.value = personalized
+    try {
+      daily = await getDailyRecommendations()
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '获取每日推荐失败'
+
+      if (!message.includes('404') && !message.includes('No recommendation data')) {
+        throw error
+      }
+    }
+
+    personalizedRecords.value = await personalizedPromise
+    dailyRecords.value = daily ? [daily] : []
   } catch (error) {
     const message = error instanceof Error ? error.message : '推荐接口请求失败'
     errorMessage.value = message

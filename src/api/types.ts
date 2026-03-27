@@ -1,4 +1,4 @@
-import type { RatingLevelValue } from '../utils/rating'
+﻿import type { RatingLevelValue } from '../utils/rating'
 
 export type Sentiment = 'like' | 'dislike'
 
@@ -26,6 +26,10 @@ export type FoodRecord = {
   review_text: string
   image_url: string | null
   uploaded_at: string
+  like_count?: number
+  dislike_count?: number
+  created_at?: string
+  updated_at?: string
   user?: UserSummary
 }
 

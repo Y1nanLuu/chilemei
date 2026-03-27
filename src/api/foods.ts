@@ -1,4 +1,4 @@
-import type {
+﻿import type {
   CreateCommentPayload,
   CreateFoodRecordPayload,
   FoodComment,
@@ -40,7 +40,7 @@ export const getFoodRecordComments = (recordId: string | number) => {
 }
 
 export const getDailyRecommendations = () => {
-  return request<FoodRecord[]>({
+  return request<FoodRecord>({
     url: '/foods/recommendations/daily',
   })
 }
