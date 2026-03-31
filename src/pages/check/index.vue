@@ -47,7 +47,6 @@
             <view class="action-btn primary-btn" @click="toggleEditMode">
               {{ editMode ? '收起编辑' : '编辑记录' }}
             </view>
-            <view class="action-btn secondary-btn" @click="handleReuseRecord">复用记录</view>
             <view class="action-btn danger-btn" @click="handleDeleteRecord">删除记录</view>
           </view>
 
@@ -145,12 +144,12 @@ import {
   getFoodRecordComments,
   getFoodRecordDetail,
   getFoodRecords,
-  reuseFoodRecord,
   updateFoodRecord,
 } from '../../api/foods'
 import type { FoodComment, FoodRecord, Sentiment, UpdateFoodRecordPayload } from '../../api/types'
 import { hasAccessToken } from '../../utils/auth'
 import { RATING_LEVEL_OPTIONS, type RatingLevelLabel, ratingLabelToValue, ratingLevelToLabel } from '../../utils/rating'
+import { getMediaUrl } from '../../utils/request'
 
 const route = Taro.getCurrentInstance().router?.params || {}
 const recordId = route.id
@@ -179,7 +178,10 @@ const editForm = reactive({
   reviewText: '',
 })
 
-const coverImage = computed(() => record.value?.image_url || record.value?.food.image_url || PLACEHOLDER_IMAGE)
+const coverImage = computed(() => {
+  const imageUrl = record.value?.image_url || record.value?.food.image_url
+  return imageUrl ? getMediaUrl(imageUrl) : PLACEHOLDER_IMAGE
+})
 const authorName = computed(() => record.value?.user?.nickname || `用户 ${record.value?.user_id || ''}`)
 const authorInitial = computed(() => getInitial(authorName.value))
 const publishTime = computed(() => formatDateTime(record.value?.uploaded_at))
@@ -382,25 +384,6 @@ const handleDeleteRecord = async () => {
     }, 400)
   } catch (error) {
     const message = error instanceof Error ? error.message : '记录删除失败'
-    Taro.showToast({ title: message, icon: 'none' })
-  }
-}
-
-const handleReuseRecord = async () => {
-  const currentRecordId = getCurrentRecordId()
-
-  if (!currentRecordId) {
-    return
-  }
-
-  try {
-    const newRecord = await reuseFoodRecord(currentRecordId)
-    Taro.showToast({ title: '已复用为新记录', icon: 'success' })
-    Taro.redirectTo({
-      url: `/pages/check/index?id=${newRecord.id}`,
-    })
-  } catch (error) {
-    const message = error instanceof Error ? error.message : '记录复用失败'
     Taro.showToast({ title: message, icon: 'none' })
   }
 }

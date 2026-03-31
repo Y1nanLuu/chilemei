@@ -2,9 +2,11 @@
   CreateCommentPayload,
   CreateFoodRecordPayload,
   FoodComment,
+  FoodDetailResponse,
   FoodListQuery,
   FoodRankingItem,
   FoodRecord,
+  FoodRecommendationCard,
   UpdateFoodRecordPayload,
   UploadImageResponse,
 } from './types'
@@ -40,14 +42,20 @@ export const getFoodRecordComments = (recordId: string | number) => {
 }
 
 export const getDailyRecommendations = () => {
-  return request<FoodRecord>({
+  return request<FoodRecommendationCard>({
     url: '/foods/recommendations/daily',
   })
 }
 
 export const getPersonalizedRecommendations = () => {
-  return request<FoodRecord[]>({
+  return request<FoodRecommendationCard[]>({
     url: '/foods/recommendations/personalized',
+  })
+}
+
+export const getFoodDetail = (foodId: string | number) => {
+  return request<FoodDetailResponse>({
+    url: `/foods/${foodId}/detail`,
   })
 }
 
@@ -124,8 +132,16 @@ export const uploadFoodImage = async (filePath: string) => {
     throw new Error('图片上传返回解析失败')
   }
 
-  if (response.statusCode >= 200 && response.statusCode < 300 && data?.image_url) {
-    return data
+  if (response.statusCode >= 200 && response.statusCode < 300) {
+    const imageUrl = data?.image_url || data?.stored_path
+
+    if (imageUrl) {
+      return {
+        image_url: imageUrl,
+        stored_path: data?.stored_path || imageUrl,
+        original_filename: data?.original_filename || '',
+      }
+    }
   }
 
   throw new Error(data?.detail || data?.message || '图片上传失败')

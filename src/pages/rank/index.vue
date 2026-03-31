@@ -17,26 +17,39 @@
         </view>
       </view>
 
+      <view class="scope-switch glass-card">
+        <view
+          v-for="option in scopeOptions"
+          :key="option.key"
+          class="scope-item"
+          :class="{ active: activeScope === option.key }"
+          @click="switchScope(option.key)"
+        >
+          {{ option.label }}
+        </view>
+      </view>
+
       <view v-if="loading" class="board-card glass-card">加载中...</view>
       <view v-else-if="errorMessage" class="board-card glass-card">{{ errorMessage }}</view>
 
       <view v-else class="board-list">
         <view
           v-for="(item, index) in rankings"
-          :key="`${item.food_id}-${activeTab}`"
+          :key="`${item.food_id}-${activeTab}-${activeScope}`"
           class="board-card glass-card"
           @click="openFood(item)"
         >
           <view class="board-rank" :class="`rank-${index + 1}`">{{ index + 1 }}</view>
+          <image class="board-image" :src="getCardImage(item.cover_image_url)" mode="aspectFill" />
           <view class="board-content">
             <view class="board-head">
-              <text class="board-name">{{ item.food_name }}</text>
+              <text class="board-name">{{ item.name }}</text>
               <text class="board-price">RMB {{ item.price }}</text>
             </view>
             <text class="board-restaurant">{{ item.location }}</text>
             <view class="board-meta">
               <text class="board-heat">得分 {{ item.score }} | 喜欢 {{ item.like_count }} | 劝退 {{ item.dislike_count }}</text>
-              <text class="board-action">查看关联记录</text>
+              <text class="board-action">查看食物详情</text>
             </view>
           </view>
         </view>
@@ -52,6 +65,7 @@ import Taro, { useDidShow } from '@tarojs/taro'
 import { getFoodRankings } from '../../api/foods'
 import type { FoodRankingItem } from '../../api/types'
 import { hasAccessToken } from '../../utils/auth'
+import { getMediaUrl } from '../../utils/request'
 
 const tabs = [
   { key: 'daily', label: '日榜' },
@@ -59,10 +73,18 @@ const tabs = [
   { key: 'all', label: '总榜' },
 ] as const
 
+const scopeOptions = [
+  { key: 'global', label: '全部用户' },
+  { key: 'mine', label: '只看自己' },
+] as const
+
 const activeTab = ref<'daily' | 'weekly' | 'all'>('daily')
+const activeScope = ref<'global' | 'mine'>('global')
 const rankings = ref<FoodRankingItem[]>([])
 const loading = ref(false)
 const errorMessage = ref('')
+
+const PLACEHOLDER_IMAGE = 'https://dummyimage.com/640x420/eaf1ff/7a90c2&text=Chilemei'
 
 const loadData = async () => {
   if (!hasAccessToken()) {
@@ -75,7 +97,7 @@ const loadData = async () => {
   errorMessage.value = ''
 
   try {
-    rankings.value = await getFoodRankings(activeTab.value, 'global')
+    rankings.value = await getFoodRankings(activeTab.value, activeScope.value)
   } catch (error) {
     const message = error instanceof Error ? error.message : '榜单加载失败'
     errorMessage.value = message
@@ -90,9 +112,18 @@ const switchTab = (tab: 'daily' | 'weekly' | 'all') => {
   void loadData()
 }
 
+const switchScope = (scope: 'global' | 'mine') => {
+  activeScope.value = scope
+  void loadData()
+}
+
+const getCardImage = (url?: string | null) => {
+  return getMediaUrl(url) || PLACEHOLDER_IMAGE
+}
+
 const openFood = (item: FoodRankingItem) => {
   Taro.navigateTo({
-    url: `/pages/check/index?foodName=${encodeURIComponent(item.food_name)}&location=${encodeURIComponent(item.location)}`,
+    url: `/pages/food/index?foodId=${item.food_id}`,
   })
 }
 
@@ -116,6 +147,13 @@ useDidShow(() => {
     margin-bottom: 24px;
   }
 
+  .scope-switch {
+    display: flex;
+    gap: 10px;
+    padding: 10px;
+    margin-bottom: 24px;
+  }
+
   .tab-item {
     flex: 1;
     height: 72px;
@@ -128,10 +166,28 @@ useDidShow(() => {
     font-weight: 600;
   }
 
+  .scope-item {
+    flex: 1;
+    height: 64px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ink-500);
+    font-size: 20px;
+    font-weight: 600;
+  }
+
   .tab-item.active {
     background: linear-gradient(135deg, var(--brand-500) 0%, var(--peach-500) 100%);
     color: #f5eee6ff;
     box-shadow: 0 8px 16px rgba(220, 154, 95, 0.1);
+  }
+
+  .scope-item.active {
+    background: #f3dfccff;
+    color: var(--brand-700);
+    box-shadow: 0 6px 12px rgba(220, 154, 95, 0.1);
   }
 
   .board-list {
@@ -143,7 +199,7 @@ useDidShow(() => {
   .board-card {
     display: flex;
     gap: 18px;
-    align-items: center;
+    align-items: flex-start;
     padding: 18px;
   }
 
@@ -180,6 +236,13 @@ useDidShow(() => {
     min-width: 0;
   }
 
+  .board-image {
+    width: 124px;
+    height: 124px;
+    border-radius: 20px;
+    flex-shrink: 0;
+  }
+
   .board-head,
   .board-meta {
     display: flex;
@@ -189,12 +252,16 @@ useDidShow(() => {
   }
 
   .board-name {
+    flex: 1;
+    min-width: 0;
     font-size: 26px;
     font-weight: 700;
+    color: var(--ink-900);
     word-break: break-word;
   }
 
   .board-price {
+    flex-shrink: 0;
     font-size: 24px;
     font-weight: 700;
     color: var(--brand-600);

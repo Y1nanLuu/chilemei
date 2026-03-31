@@ -34,6 +34,19 @@ export const getApiUrl = (url: string) => {
   return joinUrl(url)
 }
 
+export const getMediaUrl = (url?: string | null) => {
+  if (!url) {
+    return ''
+  }
+
+  if (/^(https?:)?\/\//.test(url) || url.startsWith('data:') || url.startsWith('blob:')) {
+    return url
+  }
+
+  const normalizedPath = url.startsWith('/') ? url : `/${url}`
+  return `${API_BASE_URL}${normalizedPath}`
+}
+
 const getErrorMessage = (data: ApiErrorResponse | string | undefined, fallback: string) => {
   if (typeof data === 'string' && data.trim()) {
     return data

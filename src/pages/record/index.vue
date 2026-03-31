@@ -1,4 +1,4 @@
-﻿﻿<template>
+﻿<template>
   <view class="mobile-shell record-page">
     <view class="screen-frame">
       <view class="section-title">
@@ -47,6 +47,7 @@ import { computed, ref } from 'vue'
 import { getFoodRecords } from '../../api/foods'
 import type { FoodRecord } from '../../api/types'
 import { hasAccessToken } from '../../utils/auth'
+import { getMediaUrl } from '../../utils/request'
 
 const PLACEHOLDER_IMAGE = 'https://dummyimage.com/640x420/eaf1ff/7a90c2&text=Chilemei'
 
@@ -68,7 +69,7 @@ const timelineRecords = computed(() => {
       time: formatTime(item.uploaded_at),
       title: item.food.name,
       note: item.review_text || '这条记录没有补充评价。',
-      image: item.image_url || item.food.image_url || PLACEHOLDER_IMAGE,
+      image: getMediaUrl(item.image_url || item.food.image_url) || PLACEHOLDER_IMAGE,
       sentiment: item.sentiment === 'dislike' ? '劝退' : '喜欢',
       meta: `${item.food.location} | RMB ${item.food.price}`,
     }))

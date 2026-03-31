@@ -40,15 +40,32 @@ export type FoodComment = {
   user?: UserSummary
 }
 
-export type FoodRankingItem = {
+export type FoodRecommendationCard = {
   food_id: number
-  food_name: string
+  name: string
   location: string
   price: number
+  score: number
   like_count: number
   dislike_count: number
-  score: number
+  cover_image_url: string | null
 }
+
+export type FoodDetailResponse = {
+  food_id: number
+  name?: string
+  location?: string
+  price?: number
+  score?: number
+  like_count?: number
+  dislike_count?: number
+  cover_image_url?: string | null
+  image_urls: string[]
+  description?: string | null
+  comments: FoodComment[]
+}
+
+export type FoodRankingItem = FoodRecommendationCard
 
 export type UserProfile = {
   id: number

@@ -42,88 +42,74 @@
 
       <view class="search-box glass-card">
         <text class="search-icon">⌕</text>
-        <text class="search-text">搜搜今天想收藏的餐厅、味道和小惊喜</text>
+        <text class="search-text">首页现在直接展示后端返回的 food 推荐卡片</text>
       </view>
 
-      <view class="section-title">
-        <text class="title">今日气泡推荐</text>
-      </view>
+      <view v-if="loading" class="status-card glass-card">加载中...</view>
+      <view v-else-if="errorMessage" class="status-card glass-card">{{ errorMessage }}</view>
+      <template v-else>
+        <view class="section-title">
+          <text class="title">今日推荐</text>
+        </view>
 
-      <view v-if="dailyPicks.length" class="hero-clip">
-        <swiper class="hero-swiper" circular autoplay interval="3600" duration="420">
-          <swiper-item v-for="dish in dailyPicks" :key="dish.id">
-            <view class="hero-card glass-card" @click="openDetail(dish.id)">
-              <image class="hero-image" :src="dish.image" mode="aspectFill" />
-              <view class="hero-overlay">
-                <view class="hero-top">
-                  <text v-for="tag in dish.tags" :key="tag" class="hero-tag">{{ tag }}</text>
-                </view>
-                <view class="hero-bottom">
-                  <text class="hero-name">{{ dish.name }}</text>
-                  <text class="hero-meta">{{ dish.location }} | RMB {{ dish.price }}</text>
-                  <view class="hero-rating">
-                    <text class="star">★</text>
-                    <text>{{ dish.ratingText }}</text>
-                  </view>
+        <view v-if="dailyPick" class="hero-clip">
+          <view class="hero-card glass-card" @click="openFoodDetail(dailyPick.food_id)">
+            <image class="hero-image" :src="getCardImage(dailyPick.cover_image_url)" mode="aspectFill" />
+            <view class="hero-overlay">
+              <view class="hero-top">
+                <text class="hero-tag">喜欢 {{ dailyPick.like_count }}</text>
+                <text class="hero-tag">劝退 {{ dailyPick.dislike_count }}</text>
+              </view>
+              <view class="hero-bottom">
+                <text class="hero-name">{{ dailyPick.name }}</text>
+                <text class="hero-meta">{{ dailyPick.location }} | RMB {{ dailyPick.price }}</text>
+                <view class="hero-rating">
+                  <text class="star">★</text>
+                  <text>得分 {{ dailyPick.score }}</text>
                 </view>
               </view>
             </view>
-          </swiper-item>
-        </swiper>
-      </view>
+          </view>
+        </view>
+        <view v-else class="status-card glass-card">暂无今日推荐</view>
 
-      <view class="section-title">
-        <text class="title">想再看一眼</text>
-      </view>
+        <!-- <view class="section-title">
+          <text class="title">个性化推荐</text>
+        </view> -->
 
-      <view v-if="hotSpots.length" class="restaurant-grid">
-        <view
-          v-for="spot in hotSpots"
-          :key="spot.id"
-          class="restaurant-card glass-card"
-          @click="openDetail(spot.recordId)"
-        >
-          <image class="restaurant-image" :src="spot.image" mode="aspectFill" />
-          <view class="restaurant-body">
-            <text class="restaurant-name">{{ spot.name }}</text>
-            <text class="restaurant-theme">{{ spot.theme }}</text>
-            <view class="restaurant-score">
-              <text class="star">★</text>
-              <text>{{ spot.score }}</text>
+        <view v-if="recommendations.length" class="recommend-list">
+          <view
+            v-for="dish in recommendations"
+            :key="dish.food_id"
+            class="recommend-card glass-card"
+            @click="openFoodDetail(dish.food_id)"
+          >
+            <image class="recommend-image" :src="getCardImage(dish.cover_image_url)" mode="aspectFill" />
+            <view class="recommend-content">
+              <view>
+                <text class="recommend-name">{{ dish.name }}</text>
+                <text class="recommend-summary">{{ dish.location }}</text>
+              </view>
+              <view class="recommend-foot">
+                <text class="recommend-meta">得分 {{ dish.score }} | 喜欢 {{ dish.like_count }} | 劝退 {{ dish.dislike_count }}</text>
+                <text class="recommend-price">RMB {{ dish.price }}</text>
+              </view>
             </view>
           </view>
         </view>
-      </view>
-
-      <view v-if="recommendations.length" class="recommend-list">
-        <view
-          v-for="dish in recommendations"
-          :key="dish.id"
-          class="recommend-card glass-card"
-          @click="openDetail(dish.id)"
-        >
-          <image class="recommend-image" :src="dish.image" mode="aspectFill" />
-          <view class="recommend-content">
-            <text class="recommend-name">{{ dish.name }}</text>
-            <text class="recommend-summary">{{ dish.summary }}</text>
-            <view class="recommend-foot">
-              <text class="recommend-meta">{{ dish.location }}</text>
-              <text class="recommend-price">RMB {{ dish.price }}</text>
-            </view>
-          </view>
-        </view>
-      </view>
+        <!-- <view v-else class="status-card glass-card">暂无个性化推荐</view> -->
+      </template>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
 import Taro, { useDidShow } from '@tarojs/taro'
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 import { getDailyRecommendations, getPersonalizedRecommendations } from '../../api/foods'
-import type { FoodRecord } from '../../api/types'
+import type { FoodRecommendationCard } from '../../api/types'
 import { hasAccessToken } from '../../utils/auth'
-import { ratingLevelToLabel } from '../../utils/rating'
+import { getMediaUrl } from '../../utils/request'
 
 const headlineChars = Array.from('把今天想记住的美味，轻轻存下来')
 const bubbleDots = [
@@ -140,97 +126,24 @@ const bubbleDots = [
   { id: 'b11', size: 6, left: '77%', bottom: '5px', delay: '1.6s', duration: '2.8s' },
   { id: 'b12', size: 9, left: '85%', bottom: '1px', delay: '2.3s', duration: '3.5s' },
   { id: 'b13', size: 5, left: '92%', bottom: '4px', delay: '1.1s', duration: '2.7s' },
-  { id: 'b14', size: 6, left: '6%', bottom: '7px', delay: '1.7s', duration: '2.5s' },
-  { id: 'b15', size: 7, left: '13%', bottom: '3px', delay: '2.4s', duration: '3s' },
-  { id: 'b16', size: 5, left: '20%', bottom: '8px', delay: '0.6s', duration: '2.4s' },
-  { id: 'b17', size: 6, left: '28%', bottom: '2px', delay: '1.5s', duration: '2.9s' },
-  { id: 'b18', size: 7, left: '43%', bottom: '6px', delay: '2.2s', duration: '2.7s' },
-  { id: 'b19', size: 5, left: '58%', bottom: '3px', delay: '0.9s', duration: '2.6s' },
-  { id: 'b20', size: 6, left: '65%', bottom: '7px', delay: '1.8s', duration: '2.8s' },
-  { id: 'b21', size: 5, left: '73%', bottom: '2px', delay: '2.5s', duration: '2.5s' },
-  { id: 'b22', size: 7, left: '80%', bottom: '6px', delay: '1.3s', duration: '3s' },
-  { id: 'b23', size: 6, left: '88%', bottom: '3px', delay: '0.4s', duration: '2.6s' },
 ]
-
-type HomeDishCard = {
-  id: number
-  name: string
-  location: string
-  price: number
-  image: string
-  summary: string
-  tags: string[]
-  ratingText: string
-}
-
-type HotSpotCard = {
-  id: string
-  recordId: number
-  name: string
-  theme: string
-  image: string
-  score: string
-}
 
 const PLACEHOLDER_IMAGE = 'https://dummyimage.com/640x420/eaf1ff/7a90c2&text=Chilemei'
 
-const dailyRecords = ref<FoodRecord[]>([])
-const personalizedRecords = ref<FoodRecord[]>([])
+const dailyPick = ref<FoodRecommendationCard | null>(null)
+const recommendations = ref<FoodRecommendationCard[]>([])
 const loading = ref(false)
 const errorMessage = ref('')
 
-const sentimentLabelMap: Record<string, string> = {
-  like: '喜欢',
-  dislike: '劝退',
+const getCardImage = (url?: string | null) => {
+  return getMediaUrl(url) || PLACEHOLDER_IMAGE
 }
-
-const mapRecordToCard = (record: FoodRecord): HomeDishCard => {
-  return {
-    id: record.id,
-    name: record.food.name,
-    location: record.food.location,
-    price: record.food.price,
-    image: record.image_url || record.food.image_url || PLACEHOLDER_IMAGE,
-    summary: record.review_text || '这条记录暂无文字评价',
-    tags: [
-      sentimentLabelMap[record.sentiment] || record.sentiment,
-      ratingLevelToLabel(record.rating_level),
-    ].filter(Boolean),
-    ratingText: ratingLevelToLabel(record.rating_level),
-  }
-}
-
-const dailyPicks = computed(() => dailyRecords.value.map(mapRecordToCard))
-const recommendations = computed(() => personalizedRecords.value.map(mapRecordToCard))
-
-const hotSpots = computed<HotSpotCard[]>(() => {
-  const locationMap = new Map<string, HotSpotCard>()
-  const merged = [...dailyRecords.value, ...personalizedRecords.value]
-
-  merged.forEach((record) => {
-    const key = record.food.location
-    const current = locationMap.get(key)
-
-    if (!current) {
-      locationMap.set(key, {
-        id: `${record.food.location}-${record.id}`,
-        recordId: record.id,
-        name: record.food.location,
-        theme: `最近常出现：${record.food.name}`,
-        image: record.image_url || record.food.image_url || PLACEHOLDER_IMAGE,
-        score: ratingLevelToLabel(record.rating_level),
-      })
-    }
-  })
-
-  return Array.from(locationMap.values()).slice(0, 4)
-})
 
 const loadData = async () => {
   if (!hasAccessToken()) {
     errorMessage.value = '请先前往登录页获取 access token。'
-    dailyRecords.value = []
-    personalizedRecords.value = []
+    dailyPick.value = null
+    recommendations.value = []
     return
   }
 
@@ -239,35 +152,32 @@ const loadData = async () => {
 
   try {
     const personalizedPromise = getPersonalizedRecommendations()
-    let daily: FoodRecord | null = null
 
     try {
-      daily = await getDailyRecommendations()
+      dailyPick.value = await getDailyRecommendations()
     } catch (error) {
       const message = error instanceof Error ? error.message : '获取每日推荐失败'
 
       if (!message.includes('404') && !message.includes('No recommendation data')) {
         throw error
       }
+
+      dailyPick.value = null
     }
 
-    personalizedRecords.value = await personalizedPromise
-    dailyRecords.value = daily ? [daily] : []
+    recommendations.value = await personalizedPromise
   } catch (error) {
     const message = error instanceof Error ? error.message : '推荐接口请求失败'
     errorMessage.value = message
-    Taro.showToast({
-      title: message,
-      icon: 'none',
-    })
+    Taro.showToast({ title: message, icon: 'none' })
   } finally {
     loading.value = false
   }
 }
 
-const openDetail = (id: number) => {
+const openFoodDetail = (foodId: number) => {
   Taro.navigateTo({
-    url: `/pages/check/index?id=${id}`,
+    url: `/pages/food/index?foodId=${foodId}`,
   })
 }
 
@@ -293,12 +203,8 @@ useDidShow(() => {
   .glass-card,
   .search-box,
   .hero-clip,
-  .hero-swiper,
   .hero-card,
   .hero-overlay,
-  .restaurant-grid,
-  .restaurant-card,
-  .restaurant-body,
   .recommend-list,
   .recommend-card,
   .recommend-content,
@@ -318,32 +224,6 @@ useDidShow(() => {
   .screen-frame {
     position: relative;
     padding: 0 2px 20px;
-  }
-
-  .screen-frame::before,
-  .screen-frame::after {
-    content: '';
-    position: absolute;
-    border-radius: 999px;
-    pointer-events: none;
-    opacity: 0.32;
-    filter: blur(1px);
-  }
-
-  .screen-frame::before {
-    top: 30px;
-    right: 24px;
-    width: 88px;
-    height: 88px;
-    background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.96), rgba(255, 223, 214, 0.2));
-  }
-
-  .screen-frame::after {
-    top: 198px;
-    left: -8px;
-    width: 48px;
-    height: 48px;
-    background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.9), rgba(214, 249, 241, 0.2));
   }
 
   .header {
@@ -396,9 +276,6 @@ useDidShow(() => {
     border-radius: 50%;
     background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.98), rgba(255, 211, 198, 0.24) 72%);
     border: 1px solid rgba(255, 215, 204, 0.78);
-    box-shadow:
-      0 8px 16px rgba(255, 194, 178, 0.16),
-      inset 0 0 0 1px rgba(255, 255, 255, 0.28);
     opacity: 0;
     animation-name: bubble-rise;
     animation-timing-function: ease-in-out;
@@ -419,20 +296,8 @@ useDidShow(() => {
 
   .headline-char {
     display: inline-block;
-    opacity: 1;
-    transform: translateY(0) scale(1);
-    text-shadow: 0 6px 18px rgba(255, 208, 193, 0.16);
     animation: fizz-text 4.4s ease-in-out infinite;
     animation-fill-mode: both;
-  }
-
-  .subhead {
-    display: block;
-    margin-top: 10px;
-    font-size: 20px;
-    line-height: 1.6;
-    color: var(--ink-500);
-    word-break: break-word;
   }
 
   .glass-card {
@@ -450,23 +315,11 @@ useDidShow(() => {
     align-items: center;
     gap: 16px;
     width: 100%;
-    padding: 18px 18px;
+    padding: 18px;
     margin-bottom: 32px;
     overflow: hidden;
     border-radius: 24px;
     position: relative;
-  }
-
-  .search-box::after {
-    content: '';
-    position: absolute;
-    top: 10px;
-    right: 16px;
-    width: 54px;
-    height: 18px;
-    border-radius: 999px;
-    background: linear-gradient(90deg, rgba(255, 255, 255, 0.52), rgba(255, 255, 255, 0));
-    opacity: 0.9;
   }
 
   .search-icon {
@@ -500,24 +353,12 @@ useDidShow(() => {
     overflow: hidden;
     border-radius: 28px;
     margin-bottom: 30px;
-    box-shadow: 0 18px 36px rgba(197, 221, 214, 0.2);
-  }
-
-  .hero-swiper {
-    width: 100%;
-    height: 440px;
-    overflow: hidden;
-  }
-
-  .hero-swiper swiper-item {
-    width: 100%;
-    overflow: hidden;
   }
 
   .hero-card {
     position: relative;
     width: 100%;
-    height: 100%;
+    height: 440px;
     overflow: hidden;
     border-radius: 28px;
   }
@@ -549,7 +390,6 @@ useDidShow(() => {
     padding: 10px 16px;
     border-radius: 999px;
     background: rgba(255, 250, 246, 0.24);
-    border: 1px solid rgba(255, 255, 255, 0.18);
     font-size: 20px;
   }
 
@@ -558,7 +398,6 @@ useDidShow(() => {
     font-size: 36px;
     font-weight: 700;
     margin-bottom: 10px;
-    word-break: break-word;
   }
 
   .hero-meta {
@@ -566,11 +405,9 @@ useDidShow(() => {
     font-size: 22px;
     color: rgba(255, 247, 244, 0.88);
     margin-bottom: 12px;
-    word-break: break-word;
   }
 
-  .hero-rating,
-  .restaurant-score {
+  .hero-rating {
     display: inline-flex;
     align-items: center;
     gap: 8px;
@@ -580,48 +417,6 @@ useDidShow(() => {
 
   .star {
     color: #ffd47a;
-  }
-
-  .restaurant-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 16px;
-    width: 100%;
-    margin-bottom: 30px;
-    overflow: hidden;
-  }
-
-  .restaurant-card {
-    width: 100%;
-    overflow: hidden;
-  }
-
-  .restaurant-image {
-    width: 100%;
-    height: 200px;
-  }
-
-  .restaurant-body {
-    width: 100%;
-    padding: 22px;
-  }
-
-  .restaurant-name,
-  .recommend-name {
-    display: block;
-    font-size: 24px;
-    font-weight: 700;
-    margin-bottom: 8px;
-    color: #5d433a;
-    word-break: break-word;
-  }
-
-  .restaurant-theme {
-    display: block;
-    font-size: 20px;
-    color: #9da9a3;
-    margin-bottom: 10px;
-    word-break: break-word;
   }
 
   .recommend-list {
@@ -655,12 +450,19 @@ useDidShow(() => {
     justify-content: space-between;
   }
 
+  .recommend-name {
+    display: block;
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: #5d433a;
+  }
+
   .recommend-summary {
     display: block;
     font-size: 20px;
     color: #7e817d;
     line-height: 1.5;
-    word-break: break-word;
   }
 
   .recommend-foot {
@@ -678,7 +480,6 @@ useDidShow(() => {
     min-width: 0;
     font-size: 18px;
     color: #9aaaa3;
-    word-break: break-word;
   }
 
   .recommend-price {
@@ -689,37 +490,17 @@ useDidShow(() => {
   }
 
   @keyframes bubble-rise {
-    0% {
-      opacity: 0;
-      transform: translate3d(0, 8px, 0) scale(0.74);
-    }
-    20% {
-      opacity: 0.74;
-    }
-    60% {
-      opacity: 0.92;
-      transform: translate3d(8px, -18px, 0) scale(1.06);
-    }
-    100% {
-      opacity: 0;
-      transform: translate3d(-6px, -36px, 0) scale(1.14);
-    }
+    0% { opacity: 0; transform: translate3d(0, 8px, 0) scale(0.74); }
+    20% { opacity: 0.74; }
+    60% { opacity: 0.92; transform: translate3d(8px, -18px, 0) scale(1.06); }
+    100% { opacity: 0; transform: translate3d(-6px, -36px, 0) scale(1.14); }
   }
 
   @keyframes fizz-text {
-    0%,
-    100% {
-      transform: translateY(0) scale(1);
-    }
-    25% {
-      transform: translateY(-0.03px) scale(1.0001);
-    }
-    50% {
-      transform: translateY(0.02px) scale(0.99996);
-    }
-    75% {
-      transform: translateY(-0.03px) scale(1.00008);
-    }
+    0%, 100% { transform: translateY(0) scale(1); }
+    25% { transform: translateY(-0.03px) scale(1.0001); }
+    50% { transform: translateY(0.02px) scale(0.99996); }
+    75% { transform: translateY(-0.03px) scale(1.00008); }
   }
 }
 </style>
