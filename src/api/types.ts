@@ -113,7 +113,8 @@ export type FoodListQuery = {
 }
 
 export type CreateFoodRecordPayload = {
-  food: {
+  food_id?: number
+  food?: {
     name: string
     location: string
     price: number
@@ -121,7 +122,8 @@ export type CreateFoodRecordPayload = {
   }
   sentiment: Sentiment
   rating_level: RatingLevelValue
-  review_text: string
+  review_text?: string
+  image_filename?: string
   image_url?: string
 }
 
@@ -146,4 +148,5 @@ export type UploadImageResponse = {
   image_url: string
   stored_path: string
   original_filename: string
+  image_filename?: string
 }

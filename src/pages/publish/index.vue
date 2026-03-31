@@ -62,23 +62,25 @@
 
         <view class="field">
           <text class="field-label">餐厅/地点</text>
+          <view v-if="selectedFood" class="field-readonly">{{ dto.food.location }}</view>
           <input
+            v-else
             class="field-input"
             :value="dto.food.location"
-            :disabled="Boolean(selectedFood)"
-            :placeholder="selectedFood ? '已根据已有食物自动填充' : '在哪里吃的？'"
+            placeholder="在哪里吃的？"
             @input="handleFoodLocationInput"
           />
         </view>
 
         <view class="field">
           <text class="field-label">价格</text>
+          <view v-if="selectedFood" class="field-readonly">RMB {{ dto.food.price }}</view>
           <input
+            v-else
             class="field-input"
             type="digit"
             :value="dto.food.price"
-            :disabled="Boolean(selectedFood)"
-            :placeholder="selectedFood ? '已根据已有食物自动填充' : '花了多少钱？'"
+            placeholder="花了多少钱？"
             @input="handleFoodPriceInput"
           />
         </view>
@@ -147,8 +149,8 @@
 <script setup lang="ts">
 import Taro, { useLoad } from '@tarojs/taro'
 import { computed, onBeforeUnmount, reactive, ref } from 'vue'
-import { createFoodRecord, getFoodRecords, uploadFoodImage } from '../../api/foods'
-import type { FoodRecord, Sentiment } from '../../api/types'
+import { createFoodRecord, deleteUploadedImage, getFoodRecords, uploadFoodImage } from '../../api/foods'
+import type { CreateFoodRecordPayload, FoodRecord, Sentiment } from '../../api/types'
 import { hasAccessToken } from '../../utils/auth'
 import { type RatingLevelValue } from '../../utils/rating'
 import { getMediaUrl } from '../../utils/request'
@@ -172,6 +174,7 @@ const dto = reactive({
   rating_level: 5 as RatingLevelValue,
   review_text: '',
   image_url: '',
+  image_filename: '',
 })
 
 const loading = ref(false)
@@ -180,6 +183,7 @@ const nameInputFocused = ref(false)
 const fromReuse = ref(false)
 const suggestedFoods = ref<ExistingFoodOption[]>([])
 const selectedFood = ref<ExistingFoodOption | null>(null)
+const hasSubmitted = ref(false)
 let blurTimer: ReturnType<typeof setTimeout> | null = null
 let searchTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -206,6 +210,20 @@ const clearTimers = () => {
   if (searchTimer) {
     clearTimeout(searchTimer)
     searchTimer = null
+  }
+}
+
+const cleanupTempImage = async (imageFilename?: string) => {
+  const targetFilename = imageFilename || dto.image_filename
+
+  if (!targetFilename) {
+    return
+  }
+
+  try {
+    await deleteUploadedImage(targetFilename)
+  } catch {
+    // Temp image cleanup is best-effort and should not block the user flow.
   }
 }
 
@@ -353,6 +371,8 @@ const selectCreateNewFood = () => {
 }
 
 const pickRecordImage = async () => {
+  const previousImageFilename = dto.image_filename
+
   try {
     const chooseRes = await Taro.chooseMedia({
       count: 1,
@@ -370,6 +390,11 @@ const pickRecordImage = async () => {
     loading.value = true
     const uploadRes = await uploadFoodImage(tempFilePath)
     dto.image_url = uploadRes.image_url
+    dto.image_filename = uploadRes.image_filename || uploadRes.stored_path.split('/').pop() || uploadRes.image_url.split('/').pop() || ''
+
+    if (previousImageFilename && previousImageFilename !== dto.image_filename) {
+      await cleanupTempImage(previousImageFilename)
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : '上传失败'
     Taro.showToast({ title: message, icon: 'none' })
@@ -378,8 +403,12 @@ const pickRecordImage = async () => {
   }
 }
 
-const clearRecordImage = () => {
+const clearRecordImage = async () => {
+  const previousImageFilename = dto.image_filename
   dto.image_url = ''
+  dto.image_filename = ''
+
+  await cleanupTempImage(previousImageFilename)
 }
 
 const resetForm = () => {
@@ -390,6 +419,7 @@ const resetForm = () => {
   dto.rating_level = 5
   dto.review_text = ''
   dto.image_url = ''
+  dto.image_filename = ''
   selectedFood.value = null
   suggestedFoods.value = []
   fromReuse.value = false
@@ -419,6 +449,7 @@ const applyPrefill = (params: Record<string, string>) => {
 
   if (params.recordImageUrl) {
     dto.image_url = decodeURIComponent(params.recordImageUrl)
+    dto.image_filename = dto.image_url.split('/').pop() || ''
   }
 
   if (params.reviewText) {
@@ -453,30 +484,44 @@ const onSubmit = async () => {
     return
   }
 
-  if (!dto.food.location.trim()) {
-    Taro.showToast({ title: '请输入餐厅/地点', icon: 'none' })
-    return
-  }
+  if (selectedFood.value?.id) {
+    if (!selectedFood.value.id) {
+      Taro.showToast({ title: '请选择已有食物', icon: 'none' })
+      return
+    }
+  } else {
+    if (!dto.food.location.trim()) {
+      Taro.showToast({ title: '请输入餐厅/地点', icon: 'none' })
+      return
+    }
 
-  if (!dto.food.price) {
-    Taro.showToast({ title: '请输入价格', icon: 'none' })
-    return
+    if (!dto.food.price) {
+      Taro.showToast({ title: '请输入价格', icon: 'none' })
+      return
+    }
   }
 
   try {
     loading.value = true
+    const payload: CreateFoodRecordPayload = {
+      sentiment: dto.sentiment,
+      rating_level: dto.rating_level,
+      ...(dto.review_text.trim() ? { review_text: dto.review_text.trim() } : {}),
+      ...(dto.image_filename ? { image_filename: dto.image_filename } : {}),
+    }
 
-    await createFoodRecord({
-      food: {
+    if (selectedFood.value?.id) {
+      payload.food_id = selectedFood.value.id
+    } else {
+      payload.food = {
         name: dto.food.name.trim(),
         location: dto.food.location.trim(),
         price: Number(dto.food.price),
-      },
-      sentiment: dto.sentiment,
-      rating_level: dto.rating_level,
-      review_text: dto.review_text.trim(),
-      image_url: dto.image_url || undefined,
-    })
+      }
+    }
+
+    await createFoodRecord(payload)
+    hasSubmitted.value = true
 
     Taro.showToast({ title: '发布成功', icon: 'success' })
     resetForm()
@@ -497,6 +542,10 @@ useLoad((params) => {
 
 onBeforeUnmount(() => {
   clearTimers()
+
+  if (!hasSubmitted.value && dto.image_filename) {
+    void cleanupTempImage(dto.image_filename)
+  }
 })
 </script>
 
@@ -588,6 +637,7 @@ onBeforeUnmount(() => {
   }
 
   .field-input,
+  .field-readonly,
   .field-textarea {
     width: 100%;
     padding: 20px 24px;
@@ -601,9 +651,10 @@ onBeforeUnmount(() => {
     outline: none;
   }
 
-  .field-input[disabled] {
+  .field-readonly {
     background: #f7fbf1;
-    color: var(--ink-600);
+    color: var(--ink-700);
+    font-weight: 600;
   }
 
   .field-textarea {

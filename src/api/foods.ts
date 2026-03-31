@@ -136,13 +136,26 @@ export const uploadFoodImage = async (filePath: string) => {
     const imageUrl = data?.image_url || data?.stored_path
 
     if (imageUrl) {
+      const imageFilename =
+        data?.stored_path?.split('/').pop() ||
+        data?.image_url?.split('/').pop() ||
+        ''
+
       return {
         image_url: imageUrl,
         stored_path: data?.stored_path || imageUrl,
         original_filename: data?.original_filename || '',
+        image_filename: imageFilename,
       }
     }
   }
 
   throw new Error(data?.detail || data?.message || '图片上传失败')
+}
+
+export const deleteUploadedImage = (imageFilename: string) => {
+  return request<void>({
+    url: `/foods/upload-image${toQueryString({ image_filename: imageFilename })}`,
+    method: 'DELETE',
+  })
 }
