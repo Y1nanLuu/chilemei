@@ -149,4 +149,5 @@ export type UploadImageResponse = {
   stored_path: string
   original_filename: string
   image_filename?: string
+  file_id?: string
 }

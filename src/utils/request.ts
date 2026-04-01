@@ -1,5 +1,6 @@
 import Taro from '@tarojs/taro'
 import { getAccessToken } from './auth'
+import { getCloudMediaBaseUrl } from './cloud'
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE'
 
@@ -20,10 +21,15 @@ const getApiBaseUrl = () => {
     return process.env.TARO_APP_API_BASE_URL
   }
 
-  return 'http://127.0.0.1:8000'
+  return 'https://chilemei-240951-4-1328995507.sh.run.tcloudbase.com'
+}
+
+const getMediaBaseUrl = () => {
+  return getCloudMediaBaseUrl()
 }
 
 const API_BASE_URL = getApiBaseUrl()
+const MEDIA_BASE_URL = getMediaBaseUrl()
 const API_PREFIX = '/api/v1'
 
 const joinUrl = (url: string) => {
@@ -39,12 +45,25 @@ export const getMediaUrl = (url?: string | null) => {
     return ''
   }
 
-  if (/^(https?:)?\/\//.test(url) || url.startsWith('data:') || url.startsWith('blob:')) {
+  const apiOrigin = API_BASE_URL.replace(/\/+$/, '')
+  const mediaOrigin = MEDIA_BASE_URL.replace(/\/+$/, '')
+
+  if (url.startsWith(`${apiOrigin}/media/`)) {
+    return `${mediaOrigin}${url.slice(apiOrigin.length)}`
+  }
+
+  if (
+    /^(https?:)?\/\//.test(url) ||
+    url.startsWith('data:') ||
+    url.startsWith('blob:') ||
+    url.startsWith('cloud://') ||
+    url.startsWith('wxfile://')
+  ) {
     return url
   }
 
   const normalizedPath = url.startsWith('/') ? url : `/${url}`
-  return `${API_BASE_URL}${normalizedPath}`
+  return `${mediaOrigin}${normalizedPath}`
 }
 
 const getErrorMessage = (data: ApiErrorResponse | string | undefined, fallback: string) => {
@@ -87,7 +106,7 @@ export const request = async <TResponse, TData = Record<string, unknown>>(
 
   const message = getErrorMessage(
     response.data as ApiErrorResponse | string | undefined,
-    `ËØ∑Ê±ÇÂ§±Ë¥• (${response.statusCode})`,
+    `«Î«Û ß∞‹ (${response.statusCode})`,
   )
 
   throw new Error(message)

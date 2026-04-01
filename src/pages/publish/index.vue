@@ -175,6 +175,7 @@ const dto = reactive({
   review_text: '',
   image_url: '',
   image_filename: '',
+  image_file_id: '',
 })
 
 const loading = ref(false)
@@ -213,15 +214,15 @@ const clearTimers = () => {
   }
 }
 
-const cleanupTempImage = async (imageFilename?: string) => {
-  const targetFilename = imageFilename || dto.image_filename
+const cleanupTempImage = async (fileId?: string) => {
+  const targetFileId = fileId || dto.image_file_id
 
-  if (!targetFilename) {
+  if (!targetFileId) {
     return
   }
 
   try {
-    await deleteUploadedImage(targetFilename)
+    await deleteUploadedImage(targetFileId)
   } catch {
     // Temp image cleanup is best-effort and should not block the user flow.
   }
@@ -371,7 +372,7 @@ const selectCreateNewFood = () => {
 }
 
 const pickRecordImage = async () => {
-  const previousImageFilename = dto.image_filename
+  const previousImageFileId = dto.image_file_id
 
   try {
     const chooseRes = await Taro.chooseMedia({
@@ -391,9 +392,10 @@ const pickRecordImage = async () => {
     const uploadRes = await uploadFoodImage(tempFilePath)
     dto.image_url = uploadRes.image_url
     dto.image_filename = uploadRes.image_filename || uploadRes.stored_path.split('/').pop() || uploadRes.image_url.split('/').pop() || ''
+    dto.image_file_id = uploadRes.file_id || uploadRes.image_url
 
-    if (previousImageFilename && previousImageFilename !== dto.image_filename) {
-      await cleanupTempImage(previousImageFilename)
+    if (previousImageFileId && previousImageFileId !== dto.image_file_id) {
+      await cleanupTempImage(previousImageFileId)
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : '上传失败'
@@ -404,11 +406,12 @@ const pickRecordImage = async () => {
 }
 
 const clearRecordImage = async () => {
-  const previousImageFilename = dto.image_filename
+  const previousImageFileId = dto.image_file_id
   dto.image_url = ''
   dto.image_filename = ''
+  dto.image_file_id = ''
 
-  await cleanupTempImage(previousImageFilename)
+  await cleanupTempImage(previousImageFileId)
 }
 
 const resetForm = () => {
@@ -420,6 +423,7 @@ const resetForm = () => {
   dto.review_text = ''
   dto.image_url = ''
   dto.image_filename = ''
+  dto.image_file_id = ''
   selectedFood.value = null
   suggestedFoods.value = []
   fromReuse.value = false
@@ -450,6 +454,7 @@ const applyPrefill = (params: Record<string, string>) => {
   if (params.recordImageUrl) {
     dto.image_url = decodeURIComponent(params.recordImageUrl)
     dto.image_filename = dto.image_url.split('/').pop() || ''
+    dto.image_file_id = dto.image_url
   }
 
   if (params.reviewText) {
@@ -543,8 +548,8 @@ useLoad((params) => {
 onBeforeUnmount(() => {
   clearTimers()
 
-  if (!hasSubmitted.value && dto.image_filename) {
-    void cleanupTempImage(dto.image_filename)
+  if (!hasSubmitted.value && dto.image_file_id) {
+    void cleanupTempImage(dto.image_file_id)
   }
 })
 </script>

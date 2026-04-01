@@ -12,6 +12,7 @@
 } from './types'
 import Taro from '@tarojs/taro'
 import { getAccessToken } from '../utils/auth'
+import { getCloudEnv } from '../utils/cloud'
 import { getApiUrl, request } from '../utils/request'
 
 const toQueryString = (query: Record<string, string | number | boolean | undefined>) => {
@@ -109,53 +110,88 @@ export const createFoodRecordComment = (
   })
 }
 
-export const uploadFoodImage = async (filePath: string) => {
-  const token = getAccessToken()
+const buildTempImageFilename = (filePath: string) => {
+  const extMatch = filePath.match(/\.([a-zA-Z0-9]+)(?:\?|$)/)
+  const ext = extMatch?.[1]?.toLowerCase() || 'jpg'
+  const unique = `${Date.now()}-${Math.random().toString(16).slice(2, 10)}`
 
-  const response = await Taro.uploadFile({
-    url: getApiUrl('/foods/upload-image'),
-    filePath,
-    name: 'file',
-    header: {
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-  })
-
-  let data: (UploadImageResponse & {
-    detail?: string
-    message?: string
-  }) | null = null
-
-  try {
-    data = JSON.parse(response.data || '{}')
-  } catch {
-    throw new Error('图片上传返回解析失败')
-  }
-
-  if (response.statusCode >= 200 && response.statusCode < 300) {
-    const imageUrl = data?.image_url || data?.stored_path
-
-    if (imageUrl) {
-      const imageFilename =
-        data?.stored_path?.split('/').pop() ||
-        data?.image_url?.split('/').pop() ||
-        ''
-
-      return {
-        image_url: imageUrl,
-        stored_path: data?.stored_path || imageUrl,
-        original_filename: data?.original_filename || '',
-        image_filename: imageFilename,
-      }
-    }
-  }
-
-  throw new Error(data?.detail || data?.message || '图片上传失败')
+  return `${unique}.${ext}`
 }
 
-export const deleteUploadedImage = (imageFilename: string) => {
-  return request<void>({
-    url: `/foods/upload-image${toQueryString({ image_filename: imageFilename })}`,
-    method: 'DELETE',
+const getWechatCloud = () => {
+  return (globalThis as { wx?: { cloud?: any } }).wx?.cloud
+}
+
+export const uploadFoodImage = async (filePath: string) => {
+  if (Taro.getEnv() !== Taro.ENV_TYPE.WEAPP) {
+    throw new Error('云存储上传仅支持微信小程序环境')
+  }
+
+  const cloudEnv = getCloudEnv()
+
+  if (!cloudEnv) {
+    throw new Error('缺少 TARO_APP_CLOUD_ENV 配置')
+  }
+
+  const imageFilename = buildTempImageFilename(filePath)
+  const cloudPath = `media/tmp/${imageFilename}`
+
+  const uploadResult = await new Promise<{ fileID: string }>((resolve, reject) => {
+    const cloud = getWechatCloud()
+
+    if (!cloud) {
+      reject(new Error('微信云能力未初始化'))
+      return
+    }
+
+    cloud.uploadFile({
+      cloudPath,
+      filePath,
+      config: {
+        env: cloudEnv,
+      },
+      success: (res) => resolve({ fileID: res.fileID }),
+      fail: (error) => {
+        reject(new Error(error?.errMsg || '图片上传失败'))
+      },
+    })
+  })
+
+  return {
+    image_url: uploadResult.fileID,
+    stored_path: cloudPath,
+    original_filename: filePath.split('/').pop() || imageFilename,
+    image_filename: imageFilename,
+    file_id: uploadResult.fileID,
+  }
+}
+
+export const deleteUploadedImage = async (fileId: string) => {
+  if (!fileId || Taro.getEnv() !== Taro.ENV_TYPE.WEAPP) {
+    return
+  }
+
+  const cloudEnv = getCloudEnv()
+
+  if (!cloudEnv) {
+    return
+  }
+
+  await new Promise<void>((resolve, reject) => {
+    const cloud = getWechatCloud()
+
+    if (!cloud) {
+      resolve()
+      return
+    }
+
+    cloud.deleteFile({
+      fileList: [fileId],
+      config: {
+        env: cloudEnv,
+      },
+      success: () => resolve(),
+      fail: (error) => reject(new Error(error?.errMsg || '图片删除失败')),
+    })
   })
 }
