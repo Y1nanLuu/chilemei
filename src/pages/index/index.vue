@@ -57,8 +57,9 @@
             <image class="hero-image" :src="getCardImage(dailyPick.cover_image_url)" mode="aspectFill" />
             <view class="hero-overlay">
               <view class="hero-top">
-                <text class="hero-tag">喜欢 {{ dailyPick.like_count }}</text>
-                <text class="hero-tag">劝退 {{ dailyPick.dislike_count }}</text>
+                <text class="hero-tag">点赞 {{ getLikeCount(dailyPick) }}</text>
+                <text class="hero-tag">收藏 {{ getFavoriteCount(dailyPick.food_id) }}</text>
+                <text class="hero-tag">劝退 {{ getDislikeCount(dailyPick) }}</text>
               </view>
               <view class="hero-bottom">
                 <text class="hero-name">{{ dailyPick.name }}</text>
@@ -66,6 +67,29 @@
                 <view class="hero-rating">
                   <text class="star">★</text>
                   <text>得分 {{ dailyPick.score }}</text>
+                </view>
+                <view class="card-actions">
+                  <view
+                    class="action-pill"
+                    :class="{ active: isLiked(dailyPick.food_id) }"
+                    @click.stop="toggleInteraction('likes', dailyPick)"
+                  >
+                    {{ isLiked(dailyPick.food_id) ? '已点赞' : '点赞' }}
+                  </view>
+                  <view
+                    class="action-pill"
+                    :class="{ active: isFavorited(dailyPick.food_id) }"
+                    @click.stop="toggleInteraction('favorites', dailyPick)"
+                  >
+                    {{ isFavorited(dailyPick.food_id) ? '已收藏' : '收藏' }}
+                  </view>
+                  <view
+                    class="action-pill"
+                    :class="{ active: isDisliked(dailyPick.food_id) }"
+                    @click.stop="toggleInteraction('dislikes', dailyPick)"
+                  >
+                    {{ isDisliked(dailyPick.food_id) ? '已劝退' : '劝退' }}
+                  </view>
                 </view>
               </view>
             </view>
@@ -91,8 +115,31 @@
                 <text class="recommend-summary">{{ dish.location }}</text>
               </view>
               <view class="recommend-foot">
-                <text class="recommend-meta">得分 {{ dish.score }} | 喜欢 {{ dish.like_count }} | 劝退 {{ dish.dislike_count }}</text>
+                <text class="recommend-meta">得分 {{ dish.score }} | 点赞 {{ getLikeCount(dish) }} | 收藏 {{ getFavoriteCount(dish.food_id) }} | 劝退 {{ getDislikeCount(dish) }}</text>
                 <text class="recommend-price">RMB {{ dish.price }}</text>
+              </view>
+              <view class="recommend-actions">
+                <view
+                  class="inline-action"
+                  :class="{ active: isLiked(dish.food_id) }"
+                  @click.stop="toggleInteraction('likes', dish)"
+                >
+                  {{ isLiked(dish.food_id) ? '已点赞' : '点赞' }}
+                </view>
+                <view
+                  class="inline-action"
+                  :class="{ active: isFavorited(dish.food_id) }"
+                  @click.stop="toggleInteraction('favorites', dish)"
+                >
+                  {{ isFavorited(dish.food_id) ? '已收藏' : '收藏' }}
+                </view>
+                <view
+                  class="inline-action"
+                  :class="{ active: isDisliked(dish.food_id) }"
+                  @click.stop="toggleInteraction('dislikes', dish)"
+                >
+                  {{ isDisliked(dish.food_id) ? '已劝退' : '劝退' }}
+                </view>
               </view>
             </view>
           </view>
@@ -109,6 +156,12 @@ import { ref } from 'vue'
 import { getDailyRecommendations, getPersonalizedRecommendations } from '../../api/foods'
 import type { FoodRecommendationCard } from '../../api/types'
 import { hasAccessToken } from '../../utils/auth'
+import {
+  getFoodInteractionCount,
+  isFoodInteracted,
+  toggleFoodInteraction,
+  type InteractionType,
+} from '../../utils/interactions'
 import { getMediaUrl } from '../../utils/request'
 
 const headlineChars = Array.from('把今天想记住的美味，轻轻存下来')
@@ -134,9 +187,52 @@ const dailyPick = ref<FoodRecommendationCard | null>(null)
 const recommendations = ref<FoodRecommendationCard[]>([])
 const loading = ref(false)
 const errorMessage = ref('')
+const interactionVersion = ref(0)
 
 const getCardImage = (url?: string | null) => {
   return getMediaUrl(url) || PLACEHOLDER_IMAGE
+}
+
+const isLiked = (foodId: number) => {
+  interactionVersion.value
+  return isFoodInteracted('likes', foodId)
+}
+
+const isFavorited = (foodId: number) => {
+  interactionVersion.value
+  return isFoodInteracted('favorites', foodId)
+}
+
+const isDisliked = (foodId: number) => {
+  interactionVersion.value
+  return isFoodInteracted('dislikes', foodId)
+}
+
+const getLikeCount = (food: FoodRecommendationCard) => {
+  interactionVersion.value
+  return food.like_count + (isLiked(food.food_id) ? 1 : 0)
+}
+
+const getFavoriteCount = (foodId: number) => {
+  interactionVersion.value
+  return getFoodInteractionCount('favorites', foodId)
+}
+
+const getDislikeCount = (food: FoodRecommendationCard) => {
+  interactionVersion.value
+  return food.dislike_count + (isDisliked(food.food_id) ? 1 : 0)
+}
+
+const toggleInteraction = (type: InteractionType, food: FoodRecommendationCard) => {
+  const result = toggleFoodInteraction(type, food)
+  interactionVersion.value += 1
+
+  Taro.showToast({
+    title: result.active
+      ? (type === 'likes' ? '已加入点赞' : type === 'favorites' ? '已加入收藏' : '已加入劝退')
+      : (type === 'likes' ? '已取消点赞' : type === 'favorites' ? '已取消收藏' : '已取消劝退'),
+    icon: 'none',
+  })
 }
 
 const loadData = async () => {
@@ -417,6 +513,44 @@ useDidShow(() => {
 
   .star {
     color: #ffd47a;
+  }
+
+  .card-actions,
+  .recommend-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 16px;
+  }
+
+  .action-pill,
+  .inline-action {
+    min-width: 118px;
+    padding: 10px 18px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    font-weight: 700;
+  }
+
+  .action-pill {
+    background: rgba(255, 250, 246, 0.22);
+    color: #fffaf8;
+    border: 1px solid rgba(255, 250, 246, 0.32);
+  }
+
+  .inline-action {
+    background: #fff5ef;
+    color: #c57960;
+  }
+
+  .action-pill.active,
+  .inline-action.active {
+    background: linear-gradient(135deg, #ef9172 0%, #f4b19d 100%);
+    color: #fff;
+    border-color: transparent;
   }
 
   .recommend-list {

@@ -3,7 +3,10 @@ export default defineAppConfig({
     'pages/register/index',
     'pages/check/index',
     'pages/food/index',
-    
+    'pages/interactions/comments/index',
+    'pages/interactions/likes/index',
+    'pages/interactions/favorites/index',
+    'pages/interactions/wishlist/index',
     'pages/index/index',
     'pages/record/index',
     'pages/publish/index',

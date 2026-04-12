@@ -1,3 +1,3 @@
 export default definePageConfig({
-  navigationBarTitleText: 'Rank',
+  navigationBarTitleText: '点赞榜',
 })

@@ -32,8 +32,16 @@
         </view>
 
         <view class="action-list">
-          <view v-for="action in ['评论', '点赞', '收藏', '想吃']" :key="action" class="action-card glass-card">
-            <text class="action-name">{{ action }}</text>
+          <view
+            v-for="action in interactionActions"
+            :key="action.key"
+            class="action-card glass-card"
+            @click="openInteractionPage(action.path)"
+          >
+            <view>
+              <text class="action-name">{{ action.label }}</text>
+              <text class="action-desc">{{ action.description }}</text>
+            </view>
             <text class="action-arrow">→</text>
           </view>
         </view>
@@ -44,7 +52,7 @@
             <view class="favorite-image placeholder-box">{{ food.count || '0' }}</view>
             <view class="favorite-content">
               <text class="favorite-name">{{ food.name || '示例食物' }}</text>
-              <text class="favorite-meta">示例餐厅 · ￥0</text>
+              <text class="favorite-meta">{{ food.location || '示例餐厅' }} · ￥{{ food.price || 0 }}</text>
             </view>
           </view>
           <view v-if="topFoods.length === 0" class="favorite-meta">年度报告中暂时没有高频食物。</view>
@@ -60,26 +68,63 @@ import { computed, ref } from 'vue'
 import { getCurrentUser, getAnnualReport } from '../../api/user'
 import type { AnnualReport, UserProfile } from '../../api/types'
 import { hasAccessToken } from '../../utils/auth'
+import { getFoodInteractions } from '../../utils/interactions'
 
 const currentYear = new Date().getFullYear()
+const interactionActions = [
+  {
+    key: 'comments',
+    label: '评论',
+    description: '查看自己参与讨论过的内容入口',
+    path: '/pages/interactions/comments/index',
+  },
+  {
+    key: 'likes',
+    label: '点赞',
+    description: '查看你点赞过的美食与记录入口',
+    path: '/pages/interactions/likes/index',
+  },
+  {
+    key: 'favorites',
+    label: '收藏',
+    description: '查看你收藏过的美食清单入口',
+    path: '/pages/interactions/favorites/index',
+  },
+] as const
 
 const profile = ref<UserProfile | null>(null)
 const report = ref<AnnualReport | null>(null)
 const loading = ref(false)
 const errorMessage = ref('')
+const localFavoriteFoods = ref(getFoodInteractions('favorites'))
+const localLikedFoods = ref(getFoodInteractions('likes'))
 
 const avatarInitial = computed(() => (profile.value?.nickname || 'M').slice(0, 1).toUpperCase())
-const topFoods = computed(() => report.value?.top_foods || [])
+const topFoods = computed(() => {
+  if (localFavoriteFoods.value.length) {
+    return localFavoriteFoods.value.map((food) => ({
+      name: food.name,
+      count: 1,
+      location: food.location,
+      price: food.price,
+    }))
+  }
+
+  return report.value?.top_foods || []
+})
 const profileHighlights = computed(() => {
   if (!report.value) {
-    return []
+    return [
+      { label: '点赞', value: String(localLikedFoods.value.length) },
+      { label: '收藏', value: String(localFavoriteFoods.value.length) },
+    ]
   }
 
   return [
     { label: '已记录', value: String(report.value.total_records) },
     { label: '总消费', value: `RMB ${report.value.total_spend}` },
-    { label: '喜欢', value: String(report.value.total_like_records) },
-    { label: '不喜欢', value: String(report.value.total_dislike_records) },
+    { label: '点赞', value: String(localLikedFoods.value.length) },
+    { label: '收藏', value: String(localFavoriteFoods.value.length) },
   ]
 })
 
@@ -91,6 +136,8 @@ const loadData = async () => {
     return
   }
 
+  localFavoriteFoods.value = getFoodInteractions('favorites')
+  localLikedFoods.value = getFoodInteractions('likes')
   loading.value = true
   errorMessage.value = ''
 
@@ -109,6 +156,10 @@ const loadData = async () => {
   } finally {
     loading.value = false
   }
+}
+
+const openInteractionPage = (path: string) => {
+  Taro.navigateTo({ url: path })
 }
 
 useDidShow(() => {
@@ -254,11 +305,21 @@ useDidShow(() => {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 16px;
   }
 
   .action-name {
+    display: block;
     font-size: 24px;
     font-weight: 600;
+    margin-bottom: 6px;
+  }
+
+  .action-desc {
+    display: block;
+    font-size: 18px;
+    line-height: 1.5;
+    color: var(--ink-500);
   }
 
   .action-arrow {

@@ -2,7 +2,7 @@
   <view class="mobile-shell rank-page">
     <view class="screen-frame">
       <view class="section-title">
-        <text class="title">热度榜单</text>
+        <text class="title">点赞榜单</text>
       </view>
 
       <view class="tabs glass-card">
@@ -48,7 +48,7 @@
             </view>
             <text class="board-restaurant">{{ item.location }}</text>
             <view class="board-meta">
-              <text class="board-heat">得分 {{ item.score }} | 喜欢 {{ item.like_count }} | 劝退 {{ item.dislike_count }}</text>
+              <text class="board-heat">点赞 {{ item.like_count }} | 劝退 {{ item.dislike_count }} | 得分 {{ item.score }}</text>
               <text class="board-action">查看食物详情</text>
             </view>
           </view>
@@ -86,6 +86,20 @@ const errorMessage = ref('')
 
 const PLACEHOLDER_IMAGE = 'https://dummyimage.com/640x420/eaf1ff/7a90c2&text=Chilemei'
 
+const sortRankingsByLikes = (items: FoodRankingItem[]) => {
+  return [...items].sort((a, b) => {
+    if (b.like_count !== a.like_count) {
+      return b.like_count - a.like_count
+    }
+
+    if (b.score !== a.score) {
+      return b.score - a.score
+    }
+
+    return a.food_id - b.food_id
+  })
+}
+
 const loadData = async () => {
   if (!hasAccessToken()) {
     errorMessage.value = '请先登录后再查看榜单。'
@@ -97,7 +111,8 @@ const loadData = async () => {
   errorMessage.value = ''
 
   try {
-    rankings.value = await getFoodRankings(activeTab.value, activeScope.value)
+    const items = await getFoodRankings(activeTab.value, activeScope.value)
+    rankings.value = sortRankingsByLikes(items)
   } catch (error) {
     const message = error instanceof Error ? error.message : '榜单加载失败'
     errorMessage.value = message

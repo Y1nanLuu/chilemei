@@ -42,11 +42,21 @@
 
         <view class="detail-card glass-card">
           <view class="section-head">
-            <text class="section-title">Comments</text>
-            <text class="section-meta">后端已聚合返回</text>
+            <text class="section-title">评论区</text>
+            <text class="section-meta">{{ allComments.length }} 条评论</text>
           </view>
-          <view v-if="detail.comments.length === 0" class="empty-copy">这道菜还没有评论。</view>
-          <view v-for="comment in detail.comments" :key="comment.id" class="comment-item">
+          <view class="comment-editor">
+            <textarea
+              class="comment-textarea"
+              :value="commentDraft"
+              maxlength="200"
+              placeholder="写下你对这道菜的评价"
+              @input="handleCommentInput"
+            />
+            <view class="comment-submit" @click="handleCreateComment">发表评论</view>
+          </view>
+          <view v-if="allComments.length === 0" class="empty-copy">这道菜还没有评论。</view>
+          <view v-for="comment in allComments" :key="comment.id" class="comment-item">
             <view class="comment-avatar">{{ getInitial(comment.user?.nickname || 'U') }}</view>
             <view class="comment-body">
               <view class="comment-top">
@@ -67,8 +77,9 @@
 import Taro, { useDidShow } from '@tarojs/taro'
 import { computed, ref } from 'vue'
 import { getFoodDetail } from '../../api/foods'
-import type { FoodDetailResponse } from '../../api/types'
+import type { FoodComment, FoodDetailResponse } from '../../api/types'
 import { hasAccessToken } from '../../utils/auth'
+import { createLocalFoodComment, getLocalCommentsByFoodId } from '../../utils/food-comments'
 import { getMediaUrl } from '../../utils/request'
 
 const route = Taro.getCurrentInstance().router?.params || {}
@@ -78,6 +89,8 @@ const PLACEHOLDER_IMAGE = 'https://dummyimage.com/640x420/eaf1ff/7a90c2&text=Chi
 const detail = ref<FoodDetailResponse | null>(null)
 const loading = ref(false)
 const errorMessage = ref('')
+const commentDraft = ref('')
+const localComments = ref<FoodComment[]>([])
 
 const galleryImages = computed(() => {
   if (!detail.value) {
@@ -96,6 +109,15 @@ const galleryImages = computed(() => {
   return images.length ? images : [PLACEHOLDER_IMAGE]
 })
 
+const allComments = computed(() => {
+  const remoteComments = detail.value?.comments || []
+  return [...localComments.value, ...remoteComments].sort((a, b) => {
+    const timeA = new Date(a.created_at || 0).getTime()
+    const timeB = new Date(b.created_at || 0).getTime()
+    return timeB - timeA
+  })
+})
+
 const formatDateTime = (value?: string) => {
   if (!value) {
     return '未知时间'
@@ -105,6 +127,32 @@ const formatDateTime = (value?: string) => {
 }
 
 const getInitial = (value: string) => value.slice(0, 1).toUpperCase()
+
+const refreshLocalComments = () => {
+  localComments.value = getLocalCommentsByFoodId(foodId)
+}
+
+const handleCommentInput = (event) => {
+  commentDraft.value = event.detail.value
+}
+
+const handleCreateComment = () => {
+  if (!detail.value) {
+    return
+  }
+
+  const content = commentDraft.value.trim()
+
+  if (!content) {
+    Taro.showToast({ title: '请输入评论内容', icon: 'none' })
+    return
+  }
+
+  createLocalFoodComment(detail.value, content)
+  commentDraft.value = ''
+  refreshLocalComments()
+  Taro.showToast({ title: '评论已发布', icon: 'success' })
+}
 
 const loadData = async () => {
   if (!hasAccessToken()) {
@@ -124,6 +172,7 @@ const loadData = async () => {
 
   try {
     detail.value = await getFoodDetail(foodId)
+    refreshLocalComments()
   } catch (error) {
     const message = error instanceof Error ? error.message : '食物详情加载失败'
     errorMessage.value = message
@@ -242,6 +291,38 @@ useDidShow(() => {
     font-size: 22px;
     line-height: 1.7;
     color: #6a6f6c;
+  }
+
+  .comment-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-bottom: 12px;
+  }
+
+  .comment-textarea {
+    width: 100%;
+    min-height: 140px;
+    box-sizing: border-box;
+    border-radius: 20px;
+    border: 1px solid #d9e6ff;
+    background: #f8fbff;
+    padding: 18px;
+    font-size: 22px;
+    color: var(--ink-700);
+  }
+
+  .comment-submit {
+    min-height: 78px;
+    padding: 0 18px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #2f6bff 0%, #7dbbff 100%);
+    color: #fff;
   }
 
   .comment-item {
