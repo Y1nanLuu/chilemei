@@ -1,6 +1,6 @@
-import Taro from '@tarojs/taro'
+﻿import Taro from '@tarojs/taro'
 import { getAccessToken } from './auth'
-import { getCloudMediaBaseUrl } from './cloud'
+import { getCloudEnv, getCloudMediaBaseUrl, getCloudService } from './cloud'
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE'
 
@@ -16,28 +16,51 @@ type ApiErrorResponse = {
   message?: string
 }
 
-const getApiBaseUrl = () => {
-  if (typeof process !== 'undefined' && process.env?.TARO_APP_API_BASE_URL) {
-    return process.env.TARO_APP_API_BASE_URL
-  }
-
-  return 'https://chilemei-240951-4-1328995507.sh.run.tcloudbase.com'
-}
-
 const getMediaBaseUrl = () => {
   return getCloudMediaBaseUrl()
 }
 
-const API_BASE_URL = getApiBaseUrl()
 const MEDIA_BASE_URL = getMediaBaseUrl()
 const API_PREFIX = '/api/v1'
 
-const joinUrl = (url: string) => {
-  return `${API_BASE_URL}${API_PREFIX}${url}`
+const getWechatCloud = () => {
+  return (globalThis as { wx?: { cloud?: any } }).wx?.cloud
+}
+
+const ensureCloudInitialized = async (cloud: any, env: string) => {
+  const globalState = globalThis as { __cloudInited?: boolean }
+  if (globalState.__cloudInited) {
+    return
+  }
+
+  if (cloud?.init) {
+    await cloud.init({
+      env,
+      traceUser: true,
+    })
+  }
+
+  globalState.__cloudInited = true
+}
+
+const formatMissingCloudConfig = (cloud: any, env?: string, service?: string) => {
+  const reasons: string[] = []
+  if (!cloud) {
+    reasons.push('wx.cloud 未挂载')
+  } else if (!cloud.callContainer) {
+    reasons.push('callContainer 不可用')
+  }
+  if (!env) {
+    reasons.push('TARO_APP_CLOUD_ENV 为空')
+  }
+  if (!service) {
+    reasons.push('TARO_APP_CLOUD_SERVICE 为空')
+  }
+  return reasons.length ? `（${reasons.join('，')}）` : ''
 }
 
 export const getApiUrl = (url: string) => {
-  return joinUrl(url)
+  return `${API_PREFIX}${url}`
 }
 
 export const getMediaUrl = (url?: string | null) => {
@@ -45,20 +68,22 @@ export const getMediaUrl = (url?: string | null) => {
     return ''
   }
 
-  const apiOrigin = API_BASE_URL.replace(/\/+$/, '')
   const mediaOrigin = MEDIA_BASE_URL.replace(/\/+$/, '')
 
-  if (url.startsWith(`${apiOrigin}/media/`)) {
-    return `${mediaOrigin}${url.slice(apiOrigin.length)}`
+  if (/^https?:\/\//.test(url)) {
+    if (url.startsWith(`${mediaOrigin}/`)) {
+      return url
+    }
+
+    const mediaIndex = url.indexOf('/media/')
+    if (mediaIndex >= 0) {
+      return `${mediaOrigin}${url.slice(mediaIndex)}`
+    }
+
+    return url
   }
 
-  if (
-    /^(https?:)?\/\//.test(url) ||
-    url.startsWith('data:') ||
-    url.startsWith('blob:') ||
-    url.startsWith('cloud://') ||
-    url.startsWith('wxfile://')
-  ) {
+  if (url.startsWith('data:') || url.startsWith('blob:') || url.startsWith('cloud://') || url.startsWith('wxfile://')) {
     return url
   }
 
@@ -87,17 +112,32 @@ const getErrorMessage = (data: ApiErrorResponse | string | undefined, fallback: 
 export const request = async <TResponse, TData = Record<string, unknown>>(
   options: RequestOptions<TData>,
 ): Promise<TResponse> => {
+  const cloud = getWechatCloud()
+  const cloudEnv = getCloudEnv()
+  const cloudService = getCloudService()
+
+  if (!cloud?.callContainer || !cloudEnv || !cloudService) {
+    const detail = formatMissingCloudConfig(cloud, cloudEnv, cloudService)
+    throw new Error(`缺少微信云托管调用配置或未在小程序环境运行${detail}`)
+  }
+
+  await ensureCloudInitialized(cloud, cloudEnv)
+
   const { url, method = 'GET', data, withAuth = true } = options
   const token = getAccessToken()
 
-  const response = await Taro.request<TResponse | ApiErrorResponse>({
-    url: joinUrl(url),
+  const response = await cloud.callContainer({
+    config: {
+      env: cloudEnv,
+    },
+    path: `${API_PREFIX}${url}`,
     method,
-    data,
     header: {
       'Content-Type': 'application/json',
+      'X-WX-SERVICE': cloudService,
       ...(withAuth && token ? { Authorization: `Bearer ${token}` } : {}),
     },
+    data,
   })
 
   if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -106,7 +146,7 @@ export const request = async <TResponse, TData = Record<string, unknown>>(
 
   const message = getErrorMessage(
     response.data as ApiErrorResponse | string | undefined,
-    `����ʧ�� (${response.statusCode})`,
+    `请求失败 (${response.statusCode})`,
   )
 
   throw new Error(message)

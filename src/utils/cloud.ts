@@ -1,5 +1,6 @@
 export const TARO_CLOUD_ENV = 'chilemei-backend-5fyl0ivfcc9347f'
 export const TARO_CLOUD_BUCKET = '6368-chilemei-backend-5fyl0ivfcc9347f-1328995507'
+export const TARO_CLOUD_SERVICE = 'chilemei'
 
 export const getCloudEnv = () => {
   if (typeof process !== 'undefined' && process.env?.TARO_APP_CLOUD_ENV) {
@@ -23,4 +24,12 @@ export const getCloudMediaBaseUrl = () => {
   }
 
   return `https://${getCloudBucket()}.tcb.qcloud.la`
+}
+
+export const getCloudService = () => {
+  if (typeof process !== 'undefined' && process.env?.TARO_APP_CLOUD_SERVICE) {
+    return process.env.TARO_APP_CLOUD_SERVICE
+  }
+
+  return TARO_CLOUD_SERVICE
 }
