@@ -74,7 +74,18 @@ export type UserProfile = {
   bio?: string | null
   avatar_url?: string | null
   is_private?: boolean
+  taste_preferences?: string[]
+  taboo_list?: string[]
+  spicy_level?: number
 }
+
+export type UserPreferenceProfile = {
+  taste_preferences: string[]
+  taboo_list: string[]
+  spicy_level: number
+}
+
+export type UpdateUserPreferencesPayload = UserPreferenceProfile
 
 export type AnnualReport = {
   total_records: number

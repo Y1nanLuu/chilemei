@@ -46,6 +46,26 @@
           </view>
         </view>
 
+        <view class="section-title">
+          <text class="title">个人设置</text>
+          <text class="caption">画像偏好与推荐联动入口</text>
+        </view>
+
+        <view class="action-list">
+          <view
+            v-for="action in settingsActions"
+            :key="action.key"
+            class="action-card glass-card"
+            @click="openInteractionPage(action.path)"
+          >
+            <view>
+              <text class="action-name">{{ action.label }}</text>
+              <text class="action-desc">{{ action.description }}</text>
+            </view>
+            <text class="action-arrow">→</text>
+          </view>
+        </view>
+
         <view class="favorites glass-card">
           <text class="favorite-title">最近收藏</text>
           <view v-for="food in topFoods.slice(0, 2)" :key="food.name" class="favorite-item">
@@ -89,6 +109,15 @@ const interactionActions = [
     label: '收藏',
     description: '查看你收藏过的美食清单入口',
     path: '/pages/interactions/favorites/index',
+  },
+] as const
+
+const settingsActions = [
+  {
+    key: 'taste-profile',
+    label: '口味画像',
+    description: '管理偏爱口味、忌口和吃辣等级',
+    path: '/pages/preferences/index',
   },
 ] as const
 

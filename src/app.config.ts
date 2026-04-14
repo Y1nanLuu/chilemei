@@ -1,4 +1,4 @@
-export default defineAppConfig({
+﻿export default defineAppConfig({
   pages: [
     'pages/register/index',
     'pages/check/index',
@@ -7,6 +7,7 @@ export default defineAppConfig({
     'pages/interactions/likes/index',
     'pages/interactions/favorites/index',
     'pages/interactions/wishlist/index',
+    'pages/preferences/index',
     'pages/index/index',
     'pages/record/index',
     'pages/publish/index',

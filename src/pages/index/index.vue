@@ -97,9 +97,10 @@
         </view>
         <view v-else class="status-card glass-card">暂无今日推荐</view>
 
-        <!-- <view class="section-title">
+        <view class="section-title personalized-head">
           <text class="title">个性化推荐</text>
-        </view> -->
+          <text class="caption">根据你的口味画像生成</text>
+        </view>
 
         <view v-if="recommendations.length" class="recommend-list">
           <view
@@ -144,7 +145,7 @@
             </view>
           </view>
         </view>
-        <!-- <view v-else class="status-card glass-card">暂无个性化推荐</view> -->
+        <view v-else class="status-card glass-card">暂无个性化推荐</view>
       </template>
     </view>
   </view>
@@ -162,6 +163,7 @@ import {
   toggleFoodInteraction,
   type InteractionType,
 } from '../../utils/interactions'
+import { consumeUserPreferencesUpdated } from '../../utils/preferences'
 import { getMediaUrl } from '../../utils/request'
 
 const headlineChars = Array.from('把今天想记住的美味，轻轻存下来')
@@ -247,6 +249,7 @@ const loadData = async () => {
   errorMessage.value = ''
 
   try {
+    const preferencesUpdated = consumeUserPreferencesUpdated()
     const personalizedPromise = getPersonalizedRecommendations()
 
     try {
@@ -262,6 +265,13 @@ const loadData = async () => {
     }
 
     recommendations.value = await personalizedPromise
+
+    if (preferencesUpdated) {
+      Taro.showToast({
+        title: '已按最新口味画像刷新推荐',
+        icon: 'none',
+      })
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : '推荐接口请求失败'
     errorMessage.value = message
@@ -442,6 +452,13 @@ useDidShow(() => {
     font-weight: 700;
     color: #5e4a42;
     letter-spacing: 1px;
+  }
+
+  .personalized-head .caption {
+    display: block;
+    margin-top: 8px;
+    font-size: 20px;
+    color: var(--ink-500);
   }
 
   .hero-clip {
