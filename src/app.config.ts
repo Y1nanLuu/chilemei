@@ -16,9 +16,10 @@
   ],
   window: {
     backgroundTextStyle: 'light',
-    navigationBarBackgroundColor: '#f4f8ff',
+    navigationBarBackgroundColor: '#f9fbff',
     navigationBarTitleText: 'Chilemei',
     navigationBarTextStyle: 'black',
+    backgroundColor: '#f9fbff',
   },
   tabBar: {
     custom: true,

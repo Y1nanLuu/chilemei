@@ -266,14 +266,25 @@ useDidShow(() => {
 
 <style lang="scss">
 .preferences-page {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
   min-height: 100vh;
+  &.mobile-shell {
+    padding: 40px 30px 260px;
+  }
   background:
-    radial-gradient(circle at 84% 8%, rgba(255, 225, 200, 0.9), transparent 22%),
-    radial-gradient(circle at 14% 14%, rgba(231, 250, 244, 0.96), transparent 24%),
-    linear-gradient(180deg, #fffdf8 0%, #fff6f0 48%, #f8fffc 100%);
+    radial-gradient(circle at 78% 4%, rgba(255, 210, 195, 0.75), transparent 22%),
+    radial-gradient(circle at 12% 18%, rgba(186, 236, 220, 0.55), transparent 28%),
+    radial-gradient(circle at 50% 0%, rgba(255, 241, 233, 0.9), transparent 32%),
+    linear-gradient(180deg, #dff5ec 0%, #e8faf4 18%, #f6fffb 42%, #fffaf6 72%, #fff2ea 100%);
 
   .screen-frame {
-    padding-bottom: 30px;
+    width: 100%;
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 0 4px 30px;
   }
 
   .glass-card,
@@ -281,11 +292,10 @@ useDidShow(() => {
   .hero-card,
   .editor-card {
     border-radius: 28px;
-    background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 251, 248, 0.82)),
-      radial-gradient(circle at top right, rgba(255, 234, 221, 0.22), transparent 30%);
-    border: 1px solid rgba(248, 223, 213, 0.9);
-    box-shadow: 0 18px 34px rgba(227, 187, 160, 0.14);
+    background: rgba(255, 255, 255, 0.28);
+    border: 1px solid rgba(255, 255, 255, 0.58);
+    box-shadow: 0 8px 16px rgba(202, 221, 214, 0.08);
+    backdrop-filter: blur(12px);
   }
 
   .status-card,
@@ -296,7 +306,7 @@ useDidShow(() => {
   }
 
   .hero-card {
-    background: linear-gradient(135deg, #fff0dc 0%, #ffd2b6 100%);
+    background: rgba(255, 255, 255, 0.36);
   }
 
   .hero-title {

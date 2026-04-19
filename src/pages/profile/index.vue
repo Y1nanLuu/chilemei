@@ -11,7 +11,7 @@
         </view>
         <view class="hero-actions">
           <view class="follow-btn">编辑资料</view>
-          <view class="share-btn">分享主页</view>
+          <view class="share-btn">美食报告</view>
         </view>
       </view>
 
@@ -20,49 +20,15 @@
 
       <template v-else>
         <view class="stats-grid">
-          <view v-for="item in profileHighlights" :key="item.label" class="stat-card glass-card">
+          <view
+            v-for="item in profileHighlights"
+            :key="item.label"
+            class="stat-card glass-card"
+            :class="{ 'is-clickable': !!item.path }"
+            @tap="openProfileHighlight(item)"
+          >
             <text class="stat-value">{{ item.value }}</text>
             <text class="stat-label">{{ item.label }}</text>
-          </view>
-        </view>
-
-        <view class="section-title">
-          <text class="title">互动功能</text>
-          <text class="caption">评论、点赞、收藏、想吃</text>
-        </view>
-
-        <view class="action-list">
-          <view
-            v-for="action in interactionActions"
-            :key="action.key"
-            class="action-card glass-card"
-            @click="openInteractionPage(action.path)"
-          >
-            <view>
-              <text class="action-name">{{ action.label }}</text>
-              <text class="action-desc">{{ action.description }}</text>
-            </view>
-            <text class="action-arrow">→</text>
-          </view>
-        </view>
-
-        <view class="section-title">
-          <text class="title">个人设置</text>
-          <text class="caption">画像偏好与推荐联动入口</text>
-        </view>
-
-        <view class="action-list">
-          <view
-            v-for="action in settingsActions"
-            :key="action.key"
-            class="action-card glass-card"
-            @click="openInteractionPage(action.path)"
-          >
-            <view>
-              <text class="action-name">{{ action.label }}</text>
-              <text class="action-desc">{{ action.description }}</text>
-            </view>
-            <text class="action-arrow">→</text>
           </view>
         </view>
 
@@ -91,35 +57,6 @@ import { hasAccessToken } from '../../utils/auth'
 import { getFoodInteractions } from '../../utils/interactions'
 
 const currentYear = new Date().getFullYear()
-const interactionActions = [
-  {
-    key: 'comments',
-    label: '评论',
-    description: '查看自己参与讨论过的内容入口',
-    path: '/pages/interactions/comments/index',
-  },
-  {
-    key: 'likes',
-    label: '点赞',
-    description: '查看你点赞过的美食与记录入口',
-    path: '/pages/interactions/likes/index',
-  },
-  {
-    key: 'favorites',
-    label: '收藏',
-    description: '查看你收藏过的美食清单入口',
-    path: '/pages/interactions/favorites/index',
-  },
-] as const
-
-const settingsActions = [
-  {
-    key: 'taste-profile',
-    label: '口味画像',
-    description: '管理偏爱口味、忌口和吃辣等级',
-    path: '/pages/preferences/index',
-  },
-] as const
 
 const profile = ref<UserProfile | null>(null)
 const report = ref<AnnualReport | null>(null)
@@ -127,6 +64,12 @@ const loading = ref(false)
 const errorMessage = ref('')
 const localFavoriteFoods = ref(getFoodInteractions('favorites'))
 const localLikedFoods = ref(getFoodInteractions('likes'))
+type ProfileHighlight = {
+  label: string
+  value: string
+  path?: string
+  isTab?: boolean
+}
 
 const avatarInitial = computed(() => (profile.value?.nickname || 'M').slice(0, 1).toUpperCase())
 const topFoods = computed(() => {
@@ -141,19 +84,21 @@ const topFoods = computed(() => {
 
   return report.value?.top_foods || []
 })
-const profileHighlights = computed(() => {
+const profileHighlights = computed<ProfileHighlight[]>(() => {
   if (!report.value) {
     return [
-      { label: '点赞', value: String(localLikedFoods.value.length) },
-      { label: '收藏', value: String(localFavoriteFoods.value.length) },
+      { label: '已记录', value: '0', path: '/pages/record/index', isTab: true },
+      { label: '总消费', value: 'RMB --' },
+      { label: '口味画像', value: '去设置', path: '/pages/preferences/index' },
+      { label: '收藏', value: String(localFavoriteFoods.value.length), path: '/pages/interactions/favorites/index' },
     ]
   }
 
   return [
-    { label: '已记录', value: String(report.value.total_records) },
+    { label: '已记录', value: String(report.value.total_records), path: '/pages/record/index', isTab: true },
     { label: '总消费', value: `RMB ${report.value.total_spend}` },
-    { label: '点赞', value: String(localLikedFoods.value.length) },
-    { label: '收藏', value: String(localFavoriteFoods.value.length) },
+    { label: '口味画像', value: '去设置', path: '/pages/preferences/index' },
+    { label: '收藏', value: String(localFavoriteFoods.value.length), path: '/pages/interactions/favorites/index' },
   ]
 })
 
@@ -191,6 +136,19 @@ const openInteractionPage = (path: string) => {
   Taro.navigateTo({ url: path })
 }
 
+const openProfileHighlight = (item: ProfileHighlight) => {
+  if (!item.path) {
+    return
+  }
+
+  if (item.isTab) {
+    Taro.switchTab({ url: item.path })
+    return
+  }
+
+  openInteractionPage(item.path)
+}
+
 useDidShow(() => {
   void loadData()
 })
@@ -198,10 +156,38 @@ useDidShow(() => {
 
 <style lang="scss">
 .profile-page {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  min-height: 100vh;
+
+  &.mobile-shell {
+    padding: 40px 30px 260px;
+  }
+
+  /* 与 rank-page 同一套页面底色 */
+  background:
+    radial-gradient(circle at 78% 4%, rgba(255, 210, 195, 0.75), transparent 22%),
+    radial-gradient(circle at 12% 18%, rgba(186, 236, 220, 0.55), transparent 28%),
+    radial-gradient(circle at 50% 0%, rgba(255, 241, 233, 0.9), transparent 32%),
+    linear-gradient(180deg, #dff5ec 0%, #e8faf4 18%, #f6fffb 42%, #fffaf6 72%, #fff2ea 100%);
+
+  .screen-frame {
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 0 4px 20px;
+  }
+
   .profile-hero {
     padding: 24px;
     margin-bottom: 22px;
-    background: linear-gradient(135deg, #fff4df 0%, #f8c66d 100%);
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.78);
+    border: 1px solid rgba(255, 255, 255, 0.95);
+    box-shadow: none;
     color: var(--ink-900);
   }
 
@@ -253,30 +239,46 @@ useDidShow(() => {
 
   .hero-actions {
     display: flex;
-    gap: 12px;
+    gap: 10px;
     margin-top: 22px;
   }
 
+  /* 与记录页 filter-chip / 首页主操作同一套：主按钮珊瑚渐变 + 次按钮磨砂白丸 */
   .follow-btn,
   .share-btn {
     flex: 1;
-    height: 78px;
-    border-radius: 20px;
+    min-height: 72px;
+    padding: 10px 14px;
+    border-radius: 999px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 22px;
+    font-size: 23px;
     font-weight: 700;
+    line-height: 1.3;
+    -webkit-tap-highlight-color: transparent;
   }
 
   .follow-btn {
-    background: #fffaf4;
-    color: var(--peach-600);
+    color: #fffaf8;
+    background: linear-gradient(135deg, #ef9172 0%, #f4b19d 100%);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    box-shadow: 0 4px 12px rgba(239, 145, 114, 0.22);
+  }
+
+  .follow-btn:active {
+    opacity: 0.92;
   }
 
   .share-btn {
-    background: rgba(255, 250, 244, 0.72);
-    color: var(--ink-900);
+    color: #9e9084;
+    background: rgba(255, 255, 255, 0.55);
+    border: 1px solid rgba(255, 210, 200, 0.45);
+    backdrop-filter: blur(8px);
+  }
+
+  .share-btn:active {
+    opacity: 0.88;
   }
 
   .stats-grid {
@@ -290,6 +292,11 @@ useDidShow(() => {
   .action-card,
   .favorites {
     padding: 20px;
+    background: rgba(255, 255, 255, 0.28);
+    border: 1px solid rgba(255, 255, 255, 0.58);
+    box-shadow: 0 8px 16px rgba(202, 221, 214, 0.08);
+    backdrop-filter: blur(12px);
+    border-radius: 24px;
   }
 
   .stat-value {
@@ -303,6 +310,14 @@ useDidShow(() => {
   .stat-label {
     font-size: 20px;
     color: var(--ink-500);
+  }
+
+  .stat-card.is-clickable {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .stat-card.is-clickable:active {
+    opacity: 0.86;
   }
 
   .section-title {

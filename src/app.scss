@@ -4,6 +4,15 @@
   --brand-200: #c3d8ff;
   --brand-500: #2f6bff;
   --brand-600: #1f56db;
+  --peach-500: #f0b65d;
+  --peach-600: #dc9642;
+  --ink-900: #122033;
+  --ink-700: #42506b;
+  --ink-500: #70809c;
+  --surface: #f4f8ff;
+  --card: rgba(255, 255, 255, 0.92);
+}
+
 .tab-item {
   flex: 1;
   height: 72px;
@@ -16,21 +25,19 @@
   font-weight: 600;
 }
 
-.tab-item.active {  /* 关键：激活状态的样式 */
+.tab-item.active {
   background: linear-gradient(135deg, var(--brand-500) 0%, var(--peach-500) 100%);
   color: rgba(10, 190, 130, 0.733);
   box-shadow: 0 8px 16px rgba(220, 154, 95, 0.1);
-}  --peach-500: #f0b65d;
-  --peach-600: #dc9642;
-  --ink-900: #122033;
-  --ink-700: #42506b;
-  --ink-500: #70809c;
-  --surface: #f4f8ff;
-  --card: rgba(255, 255, 255, 0.92);
 }
 
 page {
-  background: linear-gradient(180deg, #edf4ff 0%, #f8fbff 42%, #f4f8ff 100%);
+  /* 与榜单页 rank-page 同一套底色（全局 page，避免 Tab 页边缘露色） */
+  background:
+    radial-gradient(circle at 78% 4%, rgba(255, 210, 195, 0.75), transparent 22%),
+    radial-gradient(circle at 12% 18%, rgba(186, 236, 220, 0.55), transparent 28%),
+    radial-gradient(circle at 50% 0%, rgba(255, 241, 233, 0.9), transparent 32%),
+    linear-gradient(180deg, #dff5ec 0%, #e8faf4 18%, #f6fffb 42%, #fffaf6 72%, #fff2ea 100%);
   color: var(--ink-900);
   font-family: 'Trebuchet MS', 'Segoe UI', sans-serif;
   overflow-x: hidden;
