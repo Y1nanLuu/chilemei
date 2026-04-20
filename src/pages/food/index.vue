@@ -57,6 +57,7 @@
               class="comment-textarea"
               :value="commentDraft"
               maxlength="200"
+              :focus="Boolean(replyTarget)"
               :placeholder="replyTarget ? `回复 ${getCommentNickname(replyTarget)}` : '写下你对这道菜的评价'"
               @input="handleCommentInput"
             />
@@ -69,9 +70,18 @@
             v-for="comment in comments"
             :key="comment.id"
             class="comment-item"
-            @tap="startReply(comment)"
+            :class="{ 'reply-target-item': replyParentCommentId === comment.id }"
+            @tap.stop="startReply(comment)"
           >
-            <view class="comment-avatar">{{ getInitial(getCommentNickname(comment)) }}</view>
+            <image
+              v-if="getCommentAvatarUrl(comment)"
+              class="comment-avatar comment-avatar-image"
+              :src="getCommentAvatarUrl(comment)"
+              mode="aspectFill"
+            />
+            <view v-else class="comment-avatar comment-avatar-fallback">
+              {{ getInitial(getCommentNickname(comment)) }}
+            </view>
             <view class="comment-body">
               <view class="comment-top">
                 <text class="comment-user">{{ getCommentNickname(comment) }}</text>
@@ -163,6 +173,10 @@ const getCommentNickname = (comment: FoodComment) => {
   return comment.user_nickname || comment.user?.nickname || `用户 ${comment.user_id || comment.user?.id || ''}`
 }
 
+const getCommentAvatarUrl = (comment: FoodComment) => {
+  return getMediaUrl(comment.user_avatar_url || comment.avatar_url || comment.user?.avatar_url)
+}
+
 const getCommentContent = (comment: FoodComment) => {
   if (comment.parent_comment_id) {
     return `回复 ${comment.parent_user_nickname || '对方'}：${comment.content}`
@@ -205,17 +219,18 @@ const handleCreateComment = async () => {
   try {
     commentSubmitting.value = true
     const targetComment = replyTarget.value
+    const parentCommentId = replyParentCommentId.value
     const payload: CreateCommentPayload = { content }
 
-    if (replyParentCommentId.value) {
-      payload.parent_comment_id = replyParentCommentId.value
+    if (parentCommentId) {
+      payload.parent_comment_id = parentCommentId
     }
 
     const createdComment = await createFoodComment(detail.value.food_id, payload)
     const commentWithReplyInfo: FoodComment = targetComment
       ? {
           ...createdComment,
-          parent_comment_id: createdComment.parent_comment_id || replyParentCommentId.value,
+          parent_comment_id: createdComment.parent_comment_id || parentCommentId,
           parent_user_id: createdComment.parent_user_id || targetComment.user_id || targetComment.user?.id || null,
           parent_user_nickname: createdComment.parent_user_nickname || getCommentNickname(targetComment),
         }
@@ -485,10 +500,27 @@ useDidShow(() => {
     opacity: 0.82;
   }
 
+  .reply-target-item {
+    border-radius: 18px;
+    padding: 18px 14px 14px;
+    background: rgba(255, 247, 243, 0.82);
+    border-top-color: transparent;
+  }
+
   .comment-avatar {
     width: 52px;
     height: 52px;
     border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .comment-avatar-image {
+    display: block;
+    background: #f4f7fb;
+  }
+
+  .comment-avatar-fallback {
     background: linear-gradient(135deg, var(--brand-500) 0%, var(--peach-500) 100%);
     color: #fff;
     display: flex;
@@ -496,7 +528,6 @@ useDidShow(() => {
     justify-content: center;
     font-size: 22px;
     font-weight: 700;
-    flex-shrink: 0;
   }
 
   .comment-body {

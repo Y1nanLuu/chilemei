@@ -55,6 +55,8 @@ export type FoodComment = {
   id: number
   user_id?: number
   user_nickname?: string
+  user_avatar_url?: string | null
+  avatar_url?: string | null
   food_id?: number
   parent_comment_id?: number | null
   parent_user_id?: number | null
