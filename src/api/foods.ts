@@ -1,6 +1,7 @@
 ﻿import type {
   CreateCommentPayload,
   CreateFoodRecordPayload,
+  FavoriteFoodItem,
   FoodComment,
   FoodDetailResponse,
   FoodListQuery,
@@ -60,12 +61,49 @@ export const getFoodDetail = (foodId: string | number) => {
   })
 }
 
+export const getFoodComments = (foodId: string | number) => {
+  return request<FoodComment[]>({
+    url: `/foods/${foodId}/comments`,
+  })
+}
+
+export const createFoodComment = (
+  foodId: string | number,
+  payload: CreateCommentPayload,
+) => {
+  return request<FoodComment, CreateCommentPayload>({
+    url: `/foods/${foodId}/comments`,
+    method: 'POST',
+    data: payload,
+  })
+}
+
 export const getFoodRankings = (
   period: 'daily' | 'weekly' | 'all',
   scope: 'global' | 'mine' = 'global',
 ) => {
   return request<FoodRankingItem[]>({
     url: `/foods/rankings${toQueryString({ period, scope })}`,
+  })
+}
+
+export const getFavoriteFoods = () => {
+  return request<FavoriteFoodItem[]>({
+    url: '/foods/favorites',
+  })
+}
+
+export const createFoodFavorite = (foodId: string | number) => {
+  return request<void>({
+    url: `/foods/${foodId}/favorite`,
+    method: 'POST',
+  })
+}
+
+export const deleteFoodFavorite = (foodId: string | number) => {
+  return request<void>({
+    url: `/foods/${foodId}/favorite`,
+    method: 'DELETE',
   })
 }
 

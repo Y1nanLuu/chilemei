@@ -13,6 +13,7 @@
     'pages/publish/index',
     'pages/rank/index',
     'pages/profile/index',
+    'pages/profile/edit/index',
   ],
   window: {
     backgroundTextStyle: 'light',

@@ -4,10 +4,13 @@
       <view class="hero-card glass-card">
         <text class="hero-badge">互动中心</text>
         <text class="hero-title">我的收藏</text>
-        <text class="hero-copy">这里汇总你从首页收藏的美食，后续也可以继续扩展成完整收藏夹。</text>
+        <text class="hero-copy">这里汇总你收藏过的美食。</text>
       </view>
 
-      <view v-if="items.length === 0" class="panel-card glass-card">
+      <view v-if="loading" class="panel-card glass-card">加载中...</view>
+      <view v-else-if="errorMessage" class="panel-card glass-card">{{ errorMessage }}</view>
+
+      <view v-else-if="items.length === 0" class="panel-card glass-card">
         <text class="panel-title">还没有收藏内容</text>
         <text class="panel-copy">先去首页收藏几道想回看的美食吧。</text>
       </view>
@@ -19,7 +22,7 @@
             <text class="food-name">{{ item.name }}</text>
             <text class="food-meta">{{ item.location }} · RMB {{ item.price }}</text>
             <text class="food-score">得分 {{ item.score }} · 喜欢 {{ item.like_count }} · 劝退 {{ item.dislike_count }}</text>
-            <text class="food-time">收藏时间 {{ formatTime(item.saved_at) }}</text>
+            <text class="food-time">收藏时间 {{ formatTime(getFavoriteTime(item)) }}</text>
           </view>
         </view>
       </view>
@@ -30,22 +33,45 @@
 <script setup lang="ts">
 import Taro, { useDidShow } from '@tarojs/taro'
 import { ref } from 'vue'
-import type { FoodInteractionItem } from '../../../utils/interactions'
-import { getFoodInteractions } from '../../../utils/interactions'
+import { getFavoriteFoods } from '../../../api/foods'
+import type { FavoriteFoodItem } from '../../../api/types'
 import { getMediaUrl } from '../../../utils/request'
 
-const items = ref<FoodInteractionItem[]>([])
+const items = ref<FavoriteFoodItem[]>([])
+const loading = ref(false)
+const errorMessage = ref('')
 const PLACEHOLDER_IMAGE = 'https://dummyimage.com/640x420/eaf1ff/7a90c2&text=Chilemei'
 
-const loadData = () => {
-  items.value = getFoodInteractions('favorites')
+const getFavoriteTime = (item: FavoriteFoodItem) => {
+  return item.favorited_at || item.created_at || item.saved_at || ''
+}
+
+const loadData = async () => {
+  loading.value = true
+  errorMessage.value = ''
+
+  try {
+    const favorites = await getFavoriteFoods()
+    items.value = favorites.sort((a, b) => {
+      const timeA = new Date(getFavoriteTime(a)).getTime()
+      const timeB = new Date(getFavoriteTime(b)).getTime()
+      return timeB - timeA
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '收藏加载失败'
+    errorMessage.value = message
+    Taro.showToast({ title: message, icon: 'none' })
+    items.value = []
+  } finally {
+    loading.value = false
+  }
 }
 
 const getCardImage = (url?: string | null) => {
   return getMediaUrl(url) || PLACEHOLDER_IMAGE
 }
 
-const formatTime = (value: string) => value.replace('T', ' ').slice(0, 16)
+const formatTime = (value?: string) => (value ? value.replace('T', ' ').slice(0, 16) : '未知时间')
 
 const openFood = (foodId: number) => {
   Taro.navigateTo({
@@ -54,7 +80,7 @@ const openFood = (foodId: number) => {
 }
 
 useDidShow(() => {
-  loadData()
+  void loadData()
 })
 </script>
 

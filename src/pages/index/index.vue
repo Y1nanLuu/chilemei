@@ -110,7 +110,7 @@
                 <view class="hero-overlay">
                   <view class="hero-top">
                     <text class="hero-tag">点赞 {{ getLikeCount(dish) }}</text>
-                    <text class="hero-tag">收藏 {{ getFavoriteCount(dish.food_id) }}</text>
+                    <text class="hero-tag">{{ isFavorited(dish.food_id) ? '已收藏' : '未收藏' }}</text>
                     <text class="hero-tag">劝退 {{ getDislikeCount(dish) }}</text>
                   </view>
                   <view class="hero-bottom">
@@ -169,7 +169,7 @@
                 <text class="recommend-summary">{{ dish.location }}</text>
               </view>
               <view class="recommend-foot">
-                <text class="recommend-meta">得分 {{ dish.score }} | 点赞 {{ getLikeCount(dish) }} | 收藏 {{ getFavoriteCount(dish.food_id) }} | 劝退 {{ getDislikeCount(dish) }}</text>
+                <text class="recommend-meta">得分 {{ dish.score }} | 点赞 {{ getLikeCount(dish) }} | {{ isFavorited(dish.food_id) ? '已收藏' : '未收藏' }} | 劝退 {{ getDislikeCount(dish) }}</text>
                 <text class="recommend-price">RMB {{ dish.price }}</text>
               </view>
               <view class="recommend-actions">
@@ -230,11 +230,16 @@
 <script setup lang="ts">
 import Taro, { useDidShow } from '@tarojs/taro'
 import { computed, onBeforeUnmount, ref } from 'vue'
-import { getDailyRecommendations, getFoodRecords, getPersonalizedRecommendations } from '../../api/foods'
+import {
+  createFoodFavorite,
+  deleteFoodFavorite,
+  getDailyRecommendations,
+  getFoodRecords,
+  getPersonalizedRecommendations,
+} from '../../api/foods'
 import type { FoodRecord, FoodRecommendationCard } from '../../api/types'
 import { hasAccessToken } from '../../utils/auth'
 import {
-  getFoodInteractionCount,
   isFoodInteracted,
   toggleFoodInteraction,
   type InteractionType,
@@ -296,6 +301,7 @@ const searchPanelPinned = ref(false)
 const suggestionLoading = ref(false)
 const suggestedFoods = ref<SearchFoodItem[]>([])
 const interactionVersion = ref(0)
+const favoriteUpdatingFoodIds = ref<number[]>([])
 const showCelebration = ref(false)
 let celebrationTimer: ReturnType<typeof setTimeout> | null = null
 let searchSuggestTimer: ReturnType<typeof setTimeout> | null = null
@@ -320,7 +326,8 @@ const isLiked = (foodId: number) => {
 
 const isFavorited = (foodId: number) => {
   interactionVersion.value
-  return isFoodInteracted('favorites', foodId)
+  const target = dailySlides.value.find((item) => item.food_id === foodId)
+  return Boolean(target?.is_favorited)
 }
 
 const isDisliked = (foodId: number) => {
@@ -333,14 +340,21 @@ const getLikeCount = (food: FoodRecommendationCard) => {
   return food.like_count + (isLiked(food.food_id) ? 1 : 0)
 }
 
-const getFavoriteCount = (foodId: number) => {
-  interactionVersion.value
-  return getFoodInteractionCount('favorites', foodId)
-}
-
 const getDislikeCount = (food: FoodRecommendationCard) => {
   interactionVersion.value
   return food.dislike_count + (isDisliked(food.food_id) ? 1 : 0)
+}
+
+const isRecommendationEmptyError = (error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error || '')
+  const normalizedMessage = message.toLowerCase()
+
+  return (
+    normalizedMessage.includes('404') ||
+    normalizedMessage.includes('not found') ||
+    normalizedMessage.includes('notfound') ||
+    normalizedMessage.includes('no recommendation data')
+  )
 }
 
 const rebuildDailySlides = () => {
@@ -360,7 +374,49 @@ const rebuildDailySlides = () => {
   dailySlides.value = out
 }
 
+const updateFavoriteState = (foodId: number, isFavoritedValue: boolean) => {
+  if (dailyPick.value?.food_id === foodId) {
+    dailyPick.value = { ...dailyPick.value, is_favorited: isFavoritedValue }
+  }
+
+  recommendations.value = recommendations.value.map((item) =>
+    item.food_id === foodId ? { ...item, is_favorited: isFavoritedValue } : item,
+  )
+  rebuildDailySlides()
+  interactionVersion.value += 1
+}
+
+const toggleFavorite = async (food: FoodRecommendationCard) => {
+  if (favoriteUpdatingFoodIds.value.includes(food.food_id)) {
+    return
+  }
+
+  const nextFavorited = !isFavorited(food.food_id)
+  favoriteUpdatingFoodIds.value = [...favoriteUpdatingFoodIds.value, food.food_id]
+
+  try {
+    if (nextFavorited) {
+      await createFoodFavorite(food.food_id)
+    } else {
+      await deleteFoodFavorite(food.food_id)
+    }
+
+    updateFavoriteState(food.food_id, nextFavorited)
+    Taro.showToast({ title: nextFavorited ? '已加入收藏' : '已取消收藏', icon: 'none' })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '收藏操作失败'
+    Taro.showToast({ title: message, icon: 'none' })
+  } finally {
+    favoriteUpdatingFoodIds.value = favoriteUpdatingFoodIds.value.filter((id) => id !== food.food_id)
+  }
+}
+
 const toggleInteraction = (type: InteractionType, food: FoodRecommendationCard) => {
+  if (type === 'favorites') {
+    void toggleFavorite(food)
+    return
+  }
+
   const result = toggleFoodInteraction(type, food)
   interactionVersion.value += 1
 
@@ -386,21 +442,27 @@ const loadData = async () => {
 
   try {
     const preferencesUpdated = consumeUserPreferencesUpdated()
-    const personalizedPromise = getPersonalizedRecommendations()
 
     try {
       dailyPick.value = await getDailyRecommendations()
     } catch (error) {
-      const message = error instanceof Error ? error.message : '获取每日推荐失败'
-
-      if (!message.includes('404') && !message.includes('No recommendation data')) {
+      if (!isRecommendationEmptyError(error)) {
         throw error
       }
 
       dailyPick.value = null
     }
 
-    recommendations.value = await personalizedPromise
+    try {
+      const personalized = await getPersonalizedRecommendations()
+      recommendations.value = Array.isArray(personalized) ? personalized : []
+    } catch (error) {
+      if (!isRecommendationEmptyError(error)) {
+        throw error
+      }
+
+      recommendations.value = []
+    }
 
     if (preferencesUpdated) {
       Taro.showToast({

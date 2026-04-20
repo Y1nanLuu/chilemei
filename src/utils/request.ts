@@ -9,6 +9,7 @@ type RequestOptions<TData> = {
   method?: HttpMethod
   data?: TData
   withAuth?: boolean
+  useApiPrefix?: boolean
 }
 
 type ApiErrorResponse = {
@@ -59,8 +60,8 @@ const formatMissingCloudConfig = (cloud: any, env?: string, service?: string) =>
   return reasons.length ? `（${reasons.join('，')}）` : ''
 }
 
-export const getApiUrl = (url: string) => {
-  return `${API_PREFIX}${url}`
+export const getApiUrl = (url: string, useApiPrefix = true) => {
+  return useApiPrefix ? `${API_PREFIX}${url}` : url
 }
 
 export const getMediaUrl = (url?: string | null) => {
@@ -123,14 +124,14 @@ export const request = async <TResponse, TData = Record<string, unknown>>(
 
   await ensureCloudInitialized(cloud, cloudEnv)
 
-  const { url, method = 'GET', data, withAuth = true } = options
+  const { url, method = 'GET', data, withAuth = true, useApiPrefix = true } = options
   const token = getAccessToken()
 
   const response = await cloud.callContainer({
     config: {
       env: cloudEnv,
     },
-    path: `${API_PREFIX}${url}`,
+    path: getApiUrl(url, useApiPrefix),
     method,
     header: {
       'Content-Type': 'application/json',

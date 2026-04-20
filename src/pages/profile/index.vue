@@ -3,19 +3,29 @@
     <view class="screen-frame">
       <view class="profile-hero glass-card">
         <view class="hero-top">
-          <view class="hero-avatar">{{ avatarInitial }}</view>
+          <image v-if="profile?.avatar_url" class="hero-avatar-image" :src="avatarUrl" mode="aspectFill" />
+          <view v-else class="hero-avatar">{{ avatarInitial }}</view>
           <view>
             <text class="hero-name">{{ profile?.nickname || 'Mia 同学' }}</text>
             <text class="hero-signature">{{ profile?.bio || '偏爱轻食、烤物和所有看起来会发光的甜品。' }}</text>
           </view>
         </view>
         <view class="hero-actions">
-          <view class="follow-btn">编辑资料</view>
+          <view class="follow-btn" @tap="profile ? openEditProfile() : handleWechatLogin()">
+            {{ profile ? '编辑资料' : '立即登录' }}
+          </view>
           <view class="share-btn">美食报告</view>
         </view>
       </view>
 
       <view v-if="loading" class="favorites glass-card">加载中...</view>
+      <view v-else-if="loginRequired" class="login-panel glass-card">
+        <text class="login-title">登录后查看个人中心</text>
+        <text class="login-copy">同步你的收藏、记录和口味画像。</text>
+        <view class="login-btn" @tap="handleWechatLogin">
+          {{ loginLoading ? '登录中...' : '立即登录' }}
+        </view>
+      </view>
       <view v-else-if="errorMessage" class="favorites glass-card">{{ errorMessage }}</view>
 
       <template v-else>
@@ -51,19 +61,27 @@
 <script setup lang="ts">
 import Taro, { useDidShow } from '@tarojs/taro'
 import { computed, ref } from 'vue'
+import { getFavoriteFoods } from '../../api/foods'
+import { wechatLogin } from '../../api/auth'
 import { getCurrentUser, getAnnualReport } from '../../api/user'
-import type { AnnualReport, UserProfile } from '../../api/types'
-import { hasAccessToken } from '../../utils/auth'
-import { getFoodInteractions } from '../../utils/interactions'
+import type { AnnualReport, FavoriteFoodItem, UserProfile } from '../../api/types'
+import {
+  getCurrentUser as getStoredCurrentUser,
+  hasAccessToken,
+  setAccessToken,
+  setCurrentUser,
+} from '../../utils/auth'
+import { getMediaUrl } from '../../utils/request'
 
 const currentYear = new Date().getFullYear()
 
 const profile = ref<UserProfile | null>(null)
 const report = ref<AnnualReport | null>(null)
 const loading = ref(false)
+const loginLoading = ref(false)
 const errorMessage = ref('')
-const localFavoriteFoods = ref(getFoodInteractions('favorites'))
-const localLikedFoods = ref(getFoodInteractions('likes'))
+const favoriteFoods = ref<FavoriteFoodItem[]>([])
+const isLoggedIn = ref(hasAccessToken())
 type ProfileHighlight = {
   label: string
   value: string
@@ -72,9 +90,11 @@ type ProfileHighlight = {
 }
 
 const avatarInitial = computed(() => (profile.value?.nickname || 'M').slice(0, 1).toUpperCase())
+const avatarUrl = computed(() => getMediaUrl(profile.value?.avatar_url))
+const loginRequired = computed(() => !isLoggedIn.value)
 const topFoods = computed(() => {
-  if (localFavoriteFoods.value.length) {
-    return localFavoriteFoods.value.map((food) => ({
+  if (favoriteFoods.value.length) {
+    return favoriteFoods.value.slice(0, 2).map((food) => ({
       name: food.name,
       count: 1,
       location: food.location,
@@ -90,7 +110,7 @@ const profileHighlights = computed<ProfileHighlight[]>(() => {
       { label: '已记录', value: '0', path: '/pages/record/index', isTab: true },
       { label: '总消费', value: 'RMB --' },
       { label: '口味画像', value: '去设置', path: '/pages/preferences/index' },
-      { label: '收藏', value: String(localFavoriteFoods.value.length), path: '/pages/interactions/favorites/index' },
+      { label: '收藏', value: String(favoriteFoods.value.length), path: '/pages/interactions/favorites/index' },
     ]
   }
 
@@ -98,31 +118,54 @@ const profileHighlights = computed<ProfileHighlight[]>(() => {
     { label: '已记录', value: String(report.value.total_records), path: '/pages/record/index', isTab: true },
     { label: '总消费', value: `RMB ${report.value.total_spend}` },
     { label: '口味画像', value: '去设置', path: '/pages/preferences/index' },
-    { label: '收藏', value: String(localFavoriteFoods.value.length), path: '/pages/interactions/favorites/index' },
+    { label: '收藏', value: String(favoriteFoods.value.length), path: '/pages/interactions/favorites/index' },
   ]
 })
 
 const loadData = async () => {
-  if (!hasAccessToken()) {
-    errorMessage.value = '请先登录后再查看个人中心。'
+  isLoggedIn.value = hasAccessToken()
+
+  if (!isLoggedIn.value) {
+    errorMessage.value = ''
     profile.value = null
     report.value = null
+    favoriteFoods.value = []
     return
   }
 
-  localFavoriteFoods.value = getFoodInteractions('favorites')
-  localLikedFoods.value = getFoodInteractions('likes')
+  const storedUser = getStoredCurrentUser()
+  if (storedUser && !profile.value) {
+    profile.value = {
+      id: storedUser.id,
+      nickname: storedUser.nickname,
+      avatar_url: storedUser.avatar_url,
+    }
+  }
+
   loading.value = true
   errorMessage.value = ''
 
   try {
-    const [user, annualReport] = await Promise.all([
-      getCurrentUser(),
+    const user = await getCurrentUser()
+    profile.value = user
+    setCurrentUser(user)
+
+    const [annualReportResult, favoritesResult] = await Promise.allSettled([
       getAnnualReport(currentYear),
+      getFavoriteFoods(),
     ])
 
-    profile.value = user
-    report.value = annualReport
+    if (annualReportResult.status === 'fulfilled') {
+      report.value = annualReportResult.value
+    } else {
+      report.value = null
+    }
+
+    if (favoritesResult.status === 'fulfilled') {
+      favoriteFoods.value = favoritesResult.value
+    } else {
+      favoriteFoods.value = []
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : '个人中心加载失败'
     errorMessage.value = message
@@ -134,6 +177,64 @@ const loadData = async () => {
 
 const openInteractionPage = (path: string) => {
   Taro.navigateTo({ url: path })
+}
+
+const openEditProfile = () => {
+  Taro.navigateTo({
+    url: '/pages/profile/edit/index',
+    fail: (error) => {
+      const message = error?.errMsg || '编辑资料页面打开失败'
+      Taro.showToast({ title: message, icon: 'none' })
+    },
+  })
+}
+
+const handleWechatLogin = async () => {
+  if (loginLoading.value) {
+    return
+  }
+
+  const modalResult = await Taro.showModal({
+    title: '微信登录',
+    content: '是否授权微信登录并创建/进入你的账号？',
+    confirmText: '授权登录',
+    cancelText: '取消',
+  })
+
+  if (!modalResult.confirm) {
+    return
+  }
+
+  try {
+    loginLoading.value = true
+    const loginResult = await Taro.login()
+
+    if (!loginResult.code) {
+      Taro.showToast({ title: '未获取到微信 code', icon: 'none' })
+      return
+    }
+
+    const result = await wechatLogin({ code: loginResult.code })
+    setAccessToken(result.access_token)
+    setCurrentUser(result.user || null)
+    isLoggedIn.value = true
+
+    if (result.user) {
+      profile.value = {
+        id: result.user.id,
+        nickname: result.user.nickname,
+        avatar_url: result.user.avatar_url,
+      }
+    }
+
+    Taro.showToast({ title: '登录成功', icon: 'success' })
+    await loadData()
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '微信登录失败'
+    Taro.showToast({ title: message, icon: 'none' })
+  } finally {
+    loginLoading.value = false
+  }
 }
 
 const openProfileHighlight = (item: ProfileHighlight) => {
@@ -203,6 +304,7 @@ useDidShow(() => {
   }
 
   .hero-avatar,
+  .hero-avatar-image,
   .placeholder-box {
     width: 82px;
     height: 82px;
@@ -213,6 +315,11 @@ useDidShow(() => {
     justify-content: center;
     font-size: 34px;
     font-weight: 800;
+  }
+
+  .hero-avatar-image {
+    display: block;
+    overflow: hidden;
   }
 
   .placeholder-box {
@@ -290,6 +397,7 @@ useDidShow(() => {
 
   .stat-card,
   .action-card,
+  .login-panel,
   .favorites {
     padding: 20px;
     background: rgba(255, 255, 255, 0.28);
@@ -297,6 +405,34 @@ useDidShow(() => {
     box-shadow: 0 8px 16px rgba(202, 221, 214, 0.08);
     backdrop-filter: blur(12px);
     border-radius: 24px;
+  }
+
+  .login-title {
+    display: block;
+    font-size: 28px;
+    font-weight: 800;
+    color: #5d433a;
+    margin-bottom: 10px;
+  }
+
+  .login-copy {
+    display: block;
+    font-size: 21px;
+    line-height: 1.6;
+    color: #7f8a84;
+    margin-bottom: 18px;
+  }
+
+  .login-btn {
+    min-height: 74px;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fffaf8;
+    background: linear-gradient(135deg, #ef9172 0%, #f4b19d 100%);
+    font-size: 24px;
+    font-weight: 800;
   }
 
   .stat-value {

@@ -32,6 +32,9 @@
           <view class="stat-row">
             <view class="stat-pill">{{ galleryImages.length }} 张图片</view>
             <view class="stat-pill">food_id {{ detail.food_id }}</view>
+            <view class="stat-pill favorite-pill" @tap="toggleFavorite">
+              {{ detail.is_favorited ? '已收藏' : '收藏' }}
+            </view>
           </view>
         </view>
 
@@ -43,27 +46,38 @@
         <view class="detail-card glass-card">
           <view class="section-head">
             <text class="section-title">评论区</text>
-            <text class="section-meta">{{ allComments.length }} 条评论</text>
+            <text class="section-meta">{{ comments.length }} 条评论</text>
           </view>
           <view class="comment-editor">
+            <view v-if="replyTarget" class="reply-banner">
+              <text class="reply-text">正在回复 {{ getCommentNickname(replyTarget) }}</text>
+              <text class="reply-cancel" @tap="cancelReply">取消</text>
+            </view>
             <textarea
               class="comment-textarea"
               :value="commentDraft"
               maxlength="200"
-              placeholder="写下你对这道菜的评价"
+              :placeholder="replyTarget ? `回复 ${getCommentNickname(replyTarget)}` : '写下你对这道菜的评价'"
               @input="handleCommentInput"
             />
-            <view class="comment-submit" @click="handleCreateComment">发表评论</view>
+            <view class="comment-submit" @click="handleCreateComment">
+              {{ commentSubmitting ? '发布中...' : '发表评论' }}
+            </view>
           </view>
-          <view v-if="allComments.length === 0" class="empty-copy">这道菜还没有评论。</view>
-          <view v-for="comment in allComments" :key="comment.id" class="comment-item">
-            <view class="comment-avatar">{{ getInitial(comment.user?.nickname || 'U') }}</view>
+          <view v-if="comments.length === 0" class="empty-copy">这道菜还没有评论。</view>
+          <view
+            v-for="comment in comments"
+            :key="comment.id"
+            class="comment-item"
+            @tap="startReply(comment)"
+          >
+            <view class="comment-avatar">{{ getInitial(getCommentNickname(comment)) }}</view>
             <view class="comment-body">
               <view class="comment-top">
-                <text class="comment-user">{{ comment.user?.nickname || `用户 ${comment.user?.id || ''}` }}</text>
+                <text class="comment-user">{{ getCommentNickname(comment) }}</text>
                 <text class="comment-time">{{ formatDateTime(comment.created_at) }}</text>
               </view>
-              <text class="comment-text">{{ comment.content }}</text>
+              <text class="comment-text">{{ getCommentContent(comment) }}</text>
             </view>
           </view>
         </view>
@@ -76,10 +90,9 @@
 <script setup lang="ts">
 import Taro, { useDidShow } from '@tarojs/taro'
 import { computed, ref } from 'vue'
-import { getFoodDetail } from '../../api/foods'
-import type { FoodComment, FoodDetailResponse } from '../../api/types'
+import { createFoodComment, createFoodFavorite, deleteFoodFavorite, getFoodComments, getFoodDetail } from '../../api/foods'
+import type { CreateCommentPayload, FoodComment, FoodDetailResponse } from '../../api/types'
 import { hasAccessToken } from '../../utils/auth'
-import { createLocalFoodComment, getLocalCommentsByFoodId } from '../../utils/food-comments'
 import { getMediaUrl } from '../../utils/request'
 
 const route = Taro.getCurrentInstance().router?.params || {}
@@ -90,7 +103,9 @@ const detail = ref<FoodDetailResponse | null>(null)
 const loading = ref(false)
 const errorMessage = ref('')
 const commentDraft = ref('')
-const localComments = ref<FoodComment[]>([])
+const favoriteLoading = ref(false)
+const commentSubmitting = ref(false)
+const replyTarget = ref<FoodComment | null>(null)
 
 const galleryImages = computed(() => {
   if (!detail.value) {
@@ -109,9 +124,24 @@ const galleryImages = computed(() => {
   return images.length ? images : [PLACEHOLDER_IMAGE]
 })
 
-const allComments = computed(() => {
+const comments = computed(() => {
   const remoteComments = detail.value?.comments || []
-  return [...localComments.value, ...remoteComments].sort((a, b) => {
+  const commentMap = new Map(remoteComments.map((comment) => [comment.id, comment]))
+
+  return remoteComments.map((comment) => {
+    if (!comment.parent_comment_id || comment.parent_user_nickname) {
+      return comment
+    }
+
+    const parentComment = commentMap.get(comment.parent_comment_id)
+    return parentComment
+      ? {
+          ...comment,
+          parent_user_id: comment.parent_user_id || parentComment.user_id || parentComment.user?.id || null,
+          parent_user_nickname: getCommentNickname(parentComment),
+        }
+      : comment
+  }).sort((a, b) => {
     const timeA = new Date(a.created_at || 0).getTime()
     const timeB = new Date(b.created_at || 0).getTime()
     return timeB - timeA
@@ -128,16 +158,37 @@ const formatDateTime = (value?: string) => {
 
 const getInitial = (value: string) => value.slice(0, 1).toUpperCase()
 
-const refreshLocalComments = () => {
-  localComments.value = getLocalCommentsByFoodId(foodId)
+const getCommentNickname = (comment: FoodComment) => {
+  return comment.user_nickname || comment.user?.nickname || `用户 ${comment.user_id || comment.user?.id || ''}`
+}
+
+const getCommentContent = (comment: FoodComment) => {
+  if (comment.parent_comment_id) {
+    return `回复 ${comment.parent_user_nickname || '对方'}：${comment.content}`
+  }
+
+  return comment.content
 }
 
 const handleCommentInput = (event) => {
   commentDraft.value = event.detail.value
 }
 
-const handleCreateComment = () => {
-  if (!detail.value) {
+const startReply = (comment: FoodComment) => {
+  replyTarget.value = comment
+}
+
+const cancelReply = () => {
+  replyTarget.value = null
+}
+
+const handleCreateComment = async () => {
+  if (!detail.value || commentSubmitting.value) {
+    return
+  }
+
+  if (!hasAccessToken()) {
+    Taro.showToast({ title: '请先登录后再评论', icon: 'none' })
     return
   }
 
@@ -148,10 +199,73 @@ const handleCreateComment = () => {
     return
   }
 
-  createLocalFoodComment(detail.value, content)
-  commentDraft.value = ''
-  refreshLocalComments()
-  Taro.showToast({ title: '评论已发布', icon: 'success' })
+  try {
+    commentSubmitting.value = true
+    const targetComment = replyTarget.value
+    const payload: CreateCommentPayload = { content }
+
+    if (targetComment?.id) {
+      payload.parent_comment_id = targetComment.id
+    }
+
+    const createdComment = await createFoodComment(detail.value.food_id, payload)
+    const commentWithReplyInfo: FoodComment = targetComment
+      ? {
+          ...createdComment,
+          parent_comment_id: createdComment.parent_comment_id || targetComment.id,
+          parent_user_id: createdComment.parent_user_id || targetComment.user_id || targetComment.user?.id || null,
+          parent_user_nickname: createdComment.parent_user_nickname || getCommentNickname(targetComment),
+        }
+      : createdComment
+    let nextComments = [commentWithReplyInfo, ...(detail.value.comments || [])]
+
+    try {
+      nextComments = await getFoodComments(detail.value.food_id)
+    } catch {
+      // 如果刷新失败，仍展示创建接口返回的评论，避免用户误以为没发出去。
+    }
+
+    detail.value = {
+      ...detail.value,
+      comments: nextComments,
+    }
+    commentDraft.value = ''
+    replyTarget.value = null
+    Taro.showToast({ title: '评论已发布', icon: 'success' })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '评论发布失败'
+    Taro.showToast({ title: message, icon: 'none' })
+  } finally {
+    commentSubmitting.value = false
+  }
+}
+
+const toggleFavorite = async () => {
+  if (!detail.value || favoriteLoading.value) {
+    return
+  }
+
+  const nextFavorited = !detail.value.is_favorited
+  favoriteLoading.value = true
+
+  try {
+    if (nextFavorited) {
+      await createFoodFavorite(detail.value.food_id)
+    } else {
+      await deleteFoodFavorite(detail.value.food_id)
+    }
+
+    detail.value = {
+      ...detail.value,
+      is_favorited: nextFavorited,
+    }
+    Taro.showToast({ title: nextFavorited ? '已加入收藏' : '已取消收藏', icon: 'none' })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '收藏操作失败'
+    Taro.showToast({ title: message, icon: 'none' })
+  } finally {
+    favoriteLoading.value = false
+  }
 }
 
 const loadData = async () => {
@@ -172,7 +286,6 @@ const loadData = async () => {
 
   try {
     detail.value = await getFoodDetail(foodId)
-    refreshLocalComments()
   } catch (error) {
     const message = error instanceof Error ? error.message : '食物详情加载失败'
     errorMessage.value = message
@@ -271,6 +384,11 @@ useDidShow(() => {
     font-weight: 700;
   }
 
+  .favorite-pill {
+    background: #fff7f3;
+    border: 1px solid rgba(239, 145, 114, 0.28);
+  }
+
   .section-title {
     display: block;
     font-size: 28px;
@@ -298,6 +416,31 @@ useDidShow(() => {
     flex-direction: column;
     gap: 14px;
     margin-bottom: 12px;
+  }
+
+  .reply-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: 18px;
+    background: #fff7f3;
+    border: 1px solid rgba(239, 145, 114, 0.22);
+  }
+
+  .reply-text,
+  .reply-cancel {
+    font-size: 20px;
+    font-weight: 700;
+  }
+
+  .reply-text {
+    color: #7f8a84;
+  }
+
+  .reply-cancel {
+    color: #ef9172;
   }
 
   .comment-textarea {
@@ -331,6 +474,11 @@ useDidShow(() => {
     padding-top: 18px;
     margin-top: 18px;
     border-top: 1px solid #e8eefc;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .comment-item:active {
+    opacity: 0.82;
   }
 
   .comment-avatar {
@@ -356,5 +504,6 @@ useDidShow(() => {
     font-weight: 700;
     color: #5d433a;
   }
+
 }
 </style>
