@@ -51,7 +51,7 @@
           <view class="comment-editor">
             <view v-if="replyTarget" class="reply-banner">
               <text class="reply-text">正在回复 {{ getCommentNickname(replyTarget) }}</text>
-              <text class="reply-cancel" @tap="cancelReply">取消</text>
+              <text class="reply-cancel" @tap.stop="cancelReply">取消</text>
             </view>
             <textarea
               class="comment-textarea"
@@ -60,7 +60,7 @@
               :placeholder="replyTarget ? `回复 ${getCommentNickname(replyTarget)}` : '写下你对这道菜的评价'"
               @input="handleCommentInput"
             />
-            <view class="comment-submit" @click="handleCreateComment">
+            <view class="comment-submit" @tap.stop="handleCreateComment">
               {{ commentSubmitting ? '发布中...' : '发表评论' }}
             </view>
           </view>
@@ -106,6 +106,7 @@ const commentDraft = ref('')
 const favoriteLoading = ref(false)
 const commentSubmitting = ref(false)
 const replyTarget = ref<FoodComment | null>(null)
+const replyParentCommentId = ref<number | null>(null)
 
 const galleryImages = computed(() => {
   if (!detail.value) {
@@ -176,10 +177,12 @@ const handleCommentInput = (event) => {
 
 const startReply = (comment: FoodComment) => {
   replyTarget.value = comment
+  replyParentCommentId.value = comment.id
 }
 
 const cancelReply = () => {
   replyTarget.value = null
+  replyParentCommentId.value = null
 }
 
 const handleCreateComment = async () => {
@@ -204,15 +207,15 @@ const handleCreateComment = async () => {
     const targetComment = replyTarget.value
     const payload: CreateCommentPayload = { content }
 
-    if (targetComment?.id) {
-      payload.parent_comment_id = targetComment.id
+    if (replyParentCommentId.value) {
+      payload.parent_comment_id = replyParentCommentId.value
     }
 
     const createdComment = await createFoodComment(detail.value.food_id, payload)
     const commentWithReplyInfo: FoodComment = targetComment
       ? {
           ...createdComment,
-          parent_comment_id: createdComment.parent_comment_id || targetComment.id,
+          parent_comment_id: createdComment.parent_comment_id || replyParentCommentId.value,
           parent_user_id: createdComment.parent_user_id || targetComment.user_id || targetComment.user?.id || null,
           parent_user_nickname: createdComment.parent_user_nickname || getCommentNickname(targetComment),
         }
@@ -231,6 +234,7 @@ const handleCreateComment = async () => {
     }
     commentDraft.value = ''
     replyTarget.value = null
+    replyParentCommentId.value = null
     Taro.showToast({ title: '评论已发布', icon: 'success' })
   } catch (error) {
     const message = error instanceof Error ? error.message : '评论发布失败'
