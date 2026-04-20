@@ -98,11 +98,11 @@
             <text class="field-label">心情</text>
             <view class="mood-row">
               <view
-                v-for="mood in ['like', 'dislike']"
+                v-for="mood in moodOptions"
                 :key="mood"
                 class="mood-option"
                 :class="{ active: dto.sentiment === mood }"
-                @click="setSentiment(mood as 'like' | 'dislike')"
+                @click="setSentiment(mood)"
               >
                 <text
                   class="mood-icon"
@@ -121,7 +121,7 @@
               @touchmove="handleRatingTouch"
             >
               <view
-                v-for="i in [1, 2, 3, 4, 5]"
+                v-for="i in ratingOptions"
                 :key="i"
                 class="score-star"
                 :class="{ active: dto.rating_level >= i }"
@@ -195,6 +195,8 @@ const fromReuse = ref(false)
 const suggestedFoods = ref<ExistingFoodOption[]>([])
 const selectedFood = ref<ExistingFoodOption | null>(null)
 const hasSubmitted = ref(false)
+const moodOptions: Sentiment[] = ['like', 'dislike']
+const ratingOptions: RatingLevelValue[] = [1, 2, 3, 4, 5]
 let blurTimer: ReturnType<typeof setTimeout> | null = null
 let searchTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -590,31 +592,20 @@ onBeforeUnmount(() => {
 
 <style lang="scss">
 .publish-page {
-  height: 100vh;
-    padding: 48px 0 calc(115px + env(safe-area-inset-bottom, 0px));
+  min-height: 100vh;
+  padding: 48px 0 calc(115px + env(safe-area-inset-bottom, 0px));
   overflow-x: hidden;
-  /* 与榜单页 rank-page 同一套底色 */
-  background:
-    radial-gradient(circle at 78% 4%, rgba(255, 210, 195, 0.75), transparent 22%),
-    radial-gradient(circle at 12% 18%, rgba(186, 236, 220, 0.55), transparent 28%),
-    radial-gradient(circle at 50% 0%, rgba(255, 241, 233, 0.9), transparent 32%),
-    linear-gradient(180deg, #dff5ec 0%, #e8faf4 18%, #f6fffb 42%, #fffaf6 72%, #fff2ea 100%);
+  background: #f6fffb;
 
   .screen-frame {
     width: 100%;
     max-width: 100%;
     margin: 0;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
     padding: 0 0 6px;
     overflow-x: hidden;
-    overflow-y: auto;
   }
 
   .publish-header {
-    position: sticky;
-    top: 0;
     z-index: 20;
     padding: 8px 24px 4px;
     margin-bottom: 16px;
@@ -645,19 +636,12 @@ onBeforeUnmount(() => {
     background: rgba(255, 255, 255, 0.28);
     border: 1px solid rgba(255, 255, 255, 0.58);
     box-shadow: 0 8px 16px rgba(202, 221, 214, 0.08);
-    backdrop-filter: blur(12px);
     position: relative;
     overflow: visible;
   }
 
   .publish-form {
-    display: flex;
-    flex-direction: column;
-    gap: 22px;
-    flex: 1;
-    min-height: 0;
     overflow-x: hidden;
-    -webkit-overflow-scrolling: touch;
     padding-bottom: 12px;
   }
 
@@ -789,8 +773,6 @@ onBeforeUnmount(() => {
     color: #5d433a;
     box-sizing: border-box;
     outline: none;
-    transform: translateZ(0);
-    transition: font-weight 0.15s ease;
   }
 
   .field-input,
@@ -887,7 +869,7 @@ onBeforeUnmount(() => {
 
   .image-picker {
     width: 100%;
-    aspect-ratio: 4/3;
+    height: 420px;
     border-radius: 28px;
     background: rgba(255, 255, 255, 0.92);
     border: 1px solid rgba(217, 242, 235, 0.88);
@@ -934,13 +916,11 @@ onBeforeUnmount(() => {
     align-items: center;
     justify-content: center;
     color: #9e9084;
-    transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
   }
 
   .mood-icon {
     line-height: 1;
     color: #b8b3ac;
-    transition: transform 0.24s ease, color 0.24s ease;
   }
 
   .mood-icon--like {
@@ -956,12 +936,10 @@ onBeforeUnmount(() => {
     color: #fff;
     border-color: transparent;
     box-shadow: 0 8px 16px rgba(239, 145, 114, 0.2);
-    transform: translateY(-1px);
   }
 
   .mood-option.active .mood-icon {
     color: #ffd86f;
-    animation: mood-pop 0.36s ease;
   }
 
   .score-row {
@@ -983,13 +961,10 @@ onBeforeUnmount(() => {
     color: #b8b3ac;
     line-height: 1;
     border-radius: 16px;
-    transition: transform 0.24s ease, color 0.24s ease;
   }
 
   .score-star.active {
     color: #ffd86f;
-    animation: mood-pop 0.36s ease;
-    transform: translateY(-1px);
   }
 
   .score-field {
@@ -1025,25 +1000,6 @@ onBeforeUnmount(() => {
     background: linear-gradient(135deg, #ef9172 0%, #f4b19d 100%);
     color: #fff;
     box-shadow: 0 8px 20px rgba(239, 145, 114, 0.24);
-    position: relative;
-    overflow: hidden;
-  }
-
-  .submit-btn::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -130%;
-    width: 120%;
-    height: 100%;
-    background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0));
-    transform: skewX(-20deg);
-  }
-
-  @keyframes mood-pop {
-    0% { transform: scale(0.85); }
-    55% { transform: scale(1.16); }
-    100% { transform: scale(1); }
   }
 
 }

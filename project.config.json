@@ -18,6 +18,7 @@
     "minifyWXSS": true,
     "minifyWXML": true,
     "localPlugins": false,
+    "lazyCodeLoading": "requiredComponents",
     "disableUseStrict": false,
     "useCompilerPlugins": false,
     "condition": false,
