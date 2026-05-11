@@ -8,6 +8,7 @@
   FoodRankingItem,
   FoodRecord,
   FoodRecommendationCard,
+  FoodTagExtraction,
   UpdateFoodRecordPayload,
   UploadImageResponse,
 } from './types'
@@ -164,6 +165,11 @@ const ARK_IMAGE_MODEL = 'doubao-seedream-4-0-250828'
 const ARK_API_KEY =
   (typeof process !== 'undefined' && process.env?.TARO_APP_ARK_API_KEY) ||
   'ark-41df6df1-6438-496d-bb37-2d24e3310770-aff78'
+const DEEPSEEK_CHAT_COMPLETIONS_URL = 'https://api.deepseek.com/chat/completions'
+const DEEPSEEK_FOOD_TAG_MODEL = 'deepseek-v4-flash'
+const DEEPSEEK_API_KEY =
+  (typeof process !== 'undefined' && process.env?.TARO_APP_DEEPSEEK_API_KEY) ||
+  'sk-8295ccadb5334df984deb8740c624721'
 
 type SeedreamFoodImageOptions = {
   foodName: string
@@ -193,6 +199,169 @@ type SeedreamGenerationResponse = {
     message?: string
   }
   message?: string
+}
+
+type ExtractFoodTagsOptions = {
+  foodName: string
+  location?: string
+  reviewText?: string
+  sentiment: string
+  ratingLevel: number
+}
+
+type DeepSeekChatResponse = {
+  choices?: Array<{
+    message?: {
+      content?: string
+    }
+  }>
+  error?: {
+    message?: string
+  }
+  message?: string
+}
+
+const DEFAULT_FOOD_TAGS: FoodTagExtraction = {
+  taste_preferences: [],
+  taboo_candidates: [],
+  cuisines: [],
+  ingredients: [],
+  seasonings: [],
+  cooking_methods: [],
+  texture_tags: [],
+  scenario_tags: [],
+  recommendation_tags: [],
+  chili_level: 0,
+  has_chili: false,
+  has_sichuan_pepper: false,
+  delicious_level: 3,
+  health_tags: [],
+  summary: '',
+}
+
+const FOOD_TAG_SYSTEM_PROMPT = `你是美食记录应用的标签抽取器。请只输出 JSON，不要输出 Markdown 或解释。
+目标是从用户发布的食物名称、餐厅/地点、文字描述、喜欢/劝退、评分中抽取可用于口味画像、智能推荐、年度报告的数据。
+JSON 字段必须是：
+{
+  "taste_preferences": string[],
+  "taboo_candidates": string[],
+  "cuisines": string[],
+  "ingredients": string[],
+  "seasonings": string[],
+  "cooking_methods": string[],
+  "texture_tags": string[],
+  "scenario_tags": string[],
+  "recommendation_tags": string[],
+  "chili_level": number,
+  "has_chili": boolean,
+  "has_sichuan_pepper": boolean,
+  "delicious_level": number,
+  "health_tags": string[],
+  "summary": string
+}
+要求：数组每项为简短中文标签；taste_preferences 要能和口味画像里的偏爱口味呼应，如川菜、粤菜、面食、烧烤、甜口、酸辣、清淡、火锅；taboo_candidates 放可能影响忌口的食材或过敏源，如香菜、内脏、花生、海鲜、乳制品、葱姜蒜；chili_level 为 0-5；delicious_level 为 1-5，并结合评分和喜欢/劝退。未知字段用空数组或合理默认值。`
+
+const clampNumber = (value: unknown, min: number, max: number, fallback: number) => {
+  const nextValue = Number(value)
+
+  if (!Number.isFinite(nextValue)) {
+    return fallback
+  }
+
+  return Math.min(max, Math.max(min, Math.round(nextValue)))
+}
+
+const normalizeStringList = (value: unknown, maxLength = 10) => {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return Array.from(
+    new Set(
+      value
+        .map((item) => String(item || '').trim())
+        .filter(Boolean),
+    ),
+  ).slice(0, maxLength)
+}
+
+const normalizeFoodTags = (value: Partial<FoodTagExtraction> = {}): FoodTagExtraction => {
+  return {
+    taste_preferences: normalizeStringList(value.taste_preferences),
+    taboo_candidates: normalizeStringList(value.taboo_candidates),
+    cuisines: normalizeStringList(value.cuisines),
+    ingredients: normalizeStringList(value.ingredients, 16),
+    seasonings: normalizeStringList(value.seasonings, 16),
+    cooking_methods: normalizeStringList(value.cooking_methods),
+    texture_tags: normalizeStringList(value.texture_tags),
+    scenario_tags: normalizeStringList(value.scenario_tags),
+    recommendation_tags: normalizeStringList(value.recommendation_tags, 16),
+    chili_level: clampNumber(value.chili_level, 0, 5, DEFAULT_FOOD_TAGS.chili_level),
+    has_chili: Boolean(value.has_chili),
+    has_sichuan_pepper: Boolean(value.has_sichuan_pepper),
+    delicious_level: clampNumber(value.delicious_level, 1, 5, DEFAULT_FOOD_TAGS.delicious_level),
+    health_tags: normalizeStringList(value.health_tags),
+    summary: String(value.summary || '').trim().slice(0, 80),
+  }
+}
+
+const parseDeepSeekJson = (content: string) => {
+  const trimmedContent = content.trim()
+  const fencedMatch = trimmedContent.match(/```(?:json)?\s*([\s\S]*?)\s*```/i)
+  const jsonText = fencedMatch?.[1] || trimmedContent
+  const objectMatch = jsonText.match(/\{[\s\S]*\}/)
+
+  if (!objectMatch) {
+    throw new Error('DeepSeek 未返回有效标签 JSON')
+  }
+
+  return JSON.parse(objectMatch[0]) as Partial<FoodTagExtraction>
+}
+
+export const extractFoodTags = async (
+  options: ExtractFoodTagsOptions,
+): Promise<FoodTagExtraction> => {
+  if (!DEEPSEEK_API_KEY) {
+    throw new Error('缺少 TARO_APP_DEEPSEEK_API_KEY 配置')
+  }
+
+  const userContent = [
+    `食物名称：${options.foodName.trim() || '未知食物'}`,
+    options.location?.trim() ? `餐厅/地点：${options.location.trim()}` : '',
+    options.reviewText?.trim() ? `用户描述/评价：${options.reviewText.trim()}` : '',
+    `心情：${options.sentiment === 'dislike' ? '劝退/不喜欢' : '喜欢'}`,
+    `评分：${options.ratingLevel}/5`,
+  ].filter(Boolean).join('\n')
+
+  const response = await Taro.request<DeepSeekChatResponse>({
+    url: DEEPSEEK_CHAT_COMPLETIONS_URL,
+    method: 'POST',
+    header: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${DEEPSEEK_API_KEY}`,
+    },
+    data: {
+      model: DEEPSEEK_FOOD_TAG_MODEL,
+      messages: [
+        { role: 'system', content: FOOD_TAG_SYSTEM_PROMPT },
+        { role: 'user', content: userContent },
+      ],
+      stream: false,
+    },
+  })
+
+  if (response.statusCode < 200 || response.statusCode >= 300) {
+    const message = response.data?.error?.message || response.data?.message || `DeepSeek 标签提取失败 (${response.statusCode})`
+    throw new Error(message)
+  }
+
+  const content = response.data?.choices?.[0]?.message?.content
+
+  if (!content) {
+    throw new Error('DeepSeek 未返回标签内容')
+  }
+
+  return normalizeFoodTags(parseDeepSeekJson(content))
 }
 
 const buildSeedreamPrompt = (options: SeedreamFoodImageOptions) => {

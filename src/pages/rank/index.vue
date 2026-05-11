@@ -75,7 +75,12 @@
             <text v-else class="td-rank-normal">{{ index + 1 }}</text>
           </view>
           <view class="td td-food">
-            <text class="row-name">{{ item.name }}</text>
+            <view class="rank-food-main">
+              <text class="row-name">{{ item.name }}</text>
+              <view v-if="getCardTags(item).length" class="food-tag-row">
+                <text v-for="tag in getCardTags(item, 3)" :key="tag" class="food-tag-chip">{{ tag }}</text>
+              </view>
+            </view>
           </view>
           <text class="td td-num">{{ item.like_count }}</text>
           <text class="td td-num">{{ item.score }}</text>
@@ -94,6 +99,7 @@ import Taro, { useDidShow } from '@tarojs/taro'
 import { getFoodRankings } from '../../api/foods'
 import type { FoodRankingItem } from '../../api/types'
 import { hasAccessToken } from '../../utils/auth'
+import { getFoodTagChips } from '../../utils/food-tags'
 
 const tabs = [
   { apiKey: 'daily' as const, label: 'Daily' },
@@ -134,6 +140,10 @@ const rankCellClass = (index: number) => {
     return 'rank-cell-red'
   }
   return 'rank-cell-plain'
+}
+
+const getCardTags = (item: FoodRankingItem, limit = 4) => {
+  return getFoodTagChips(item.food_tags, limit)
 }
 
 const sortRankingsByLikes = (items: FoodRankingItem[]) => {
@@ -547,12 +557,39 @@ useDidShow(() => {
   box-sizing: border-box;
 }
 
+.rank-food-main {
+  flex: 1;
+  min-width: 0;
+}
+
 .row-name {
+  display: block;
   font-size: 26px;
   font-weight: 700;
   color: #5d433a;
   line-height: 1.35;
   word-break: break-word;
+}
+
+.food-tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+  min-width: 0;
+}
+
+.food-tag-chip {
+  max-width: 120px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 245, 239, 0.9);
+  color: #b86b52;
+  font-size: 18px;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .td-num {

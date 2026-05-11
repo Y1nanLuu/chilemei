@@ -163,10 +163,11 @@ import {
   createFoodRecord,
   createSeedreamFoodImage,
   deleteUploadedImage,
+  extractFoodTags,
   getFoodRecords,
   uploadFoodImage,
 } from '../../api/foods'
-import type { CreateFoodRecordPayload, FoodRecord, Sentiment } from '../../api/types'
+import type { CreateFoodRecordPayload, FoodRecord, FoodTagExtraction, Sentiment } from '../../api/types'
 import { hasAccessToken } from '../../utils/auth'
 import { type RatingLevelValue } from '../../utils/rating'
 import { getMediaUrl } from '../../utils/request'
@@ -197,6 +198,7 @@ const dto = reactive({
 const loading = ref(false)
 const aiImageProcessing = ref(false)
 const aiImageProcessed = ref(false)
+const tagExtracting = ref(false)
 const suggestionLoading = ref(false)
 const nameInputFocused = ref(false)
 const fromReuse = ref(false)
@@ -235,6 +237,10 @@ const imagePlaceholderText = computed(() => {
 })
 
 const submitButtonText = computed(() => {
+  if (tagExtracting.value) {
+    return 'AI 提取标签中...'
+  }
+
   if (aiImageProcessing.value) {
     return dto.image_url ? 'AI 美化图片中...' : 'AI 生成图片中...'
   }
@@ -536,6 +542,61 @@ const applyAiFoodImage = async () => {
   }
 }
 
+const buildFoodTagsFallback = (): FoodTagExtraction => {
+  const deliciousLevel = dto.sentiment === 'dislike'
+    ? Math.min(3, dto.rating_level)
+    : dto.rating_level
+
+  return {
+    taste_preferences: [],
+    taboo_candidates: [],
+    cuisines: [],
+    ingredients: [],
+    seasonings: [],
+    cooking_methods: [],
+    texture_tags: [],
+    scenario_tags: [],
+    recommendation_tags: [
+      dto.sentiment === 'dislike' ? '劝退' : '喜欢',
+      `评分${dto.rating_level}`,
+    ],
+    chili_level: 0,
+    has_chili: false,
+    has_sichuan_pepper: false,
+    delicious_level: deliciousLevel,
+    health_tags: [],
+    summary: dto.food.name.trim(),
+  }
+}
+
+const extractPublishFoodTags = async () => {
+  tagExtracting.value = true
+  Taro.showLoading({
+    title: '提取标签中',
+    mask: true,
+  })
+
+  try {
+    const tags = await extractFoodTags({
+      foodName: dto.food.name.trim(),
+      location: dto.food.location.trim(),
+      reviewText: dto.review_text.trim(),
+      sentiment: dto.sentiment,
+      ratingLevel: dto.rating_level,
+    })
+    console.log('DeepSeek food tags extracted', tags)
+    return tags
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '标签提取失败'
+    console.warn('DeepSeek food tags extraction failed, using fallback tags', error)
+    Taro.showToast({ title: `${message}，已使用基础标签`, icon: 'none' })
+    return buildFoodTagsFallback()
+  } finally {
+    tagExtracting.value = false
+    Taro.hideLoading()
+  }
+}
+
 const resetForm = () => {
   dto.food.name = ''
   dto.food.location = ''
@@ -632,6 +693,7 @@ const onSubmit = async () => {
 
   try {
     loading.value = true
+    const foodTags = await extractPublishFoodTags()
     await applyAiFoodImage()
 
     const payload: CreateFoodRecordPayload = {
@@ -639,6 +701,7 @@ const onSubmit = async () => {
       rating_level: dto.rating_level,
       ...(dto.review_text.trim() ? { review_text: dto.review_text.trim() } : {}),
       ...(dto.image_filename ? { image_filename: dto.image_filename } : {}),
+      food_tags: foodTags,
     }
 
     if (selectedFood.value?.id) {
@@ -651,6 +714,7 @@ const onSubmit = async () => {
       }
     }
 
+    console.log('Create food record payload', payload)
     await createFoodRecord(payload)
     hasSubmitted.value = true
 

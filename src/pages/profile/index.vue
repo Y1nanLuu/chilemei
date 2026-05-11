@@ -49,6 +49,9 @@
             <view class="favorite-content">
               <text class="favorite-name">{{ food.name || '示例食物' }}</text>
               <text class="favorite-meta">{{ food.location || '示例餐厅' }} · ￥{{ food.price || 0 }}</text>
+              <view v-if="getCardTags(food).length" class="food-tag-row">
+                <text v-for="tag in getCardTags(food, 3)" :key="tag" class="food-tag-chip">{{ tag }}</text>
+              </view>
             </view>
           </view>
           <view v-if="topFoods.length === 0" class="favorite-meta">年度报告中暂时没有高频食物。</view>
@@ -72,6 +75,7 @@ import {
   setCurrentUser,
 } from '../../utils/auth'
 import { getMediaUrl } from '../../utils/request'
+import { getFoodTagChips } from '../../utils/food-tags'
 
 const currentYear = new Date().getFullYear()
 
@@ -99,11 +103,18 @@ const topFoods = computed(() => {
       count: 1,
       location: food.location,
       price: food.price,
+      food_tags: food.food_tags,
     }))
   }
 
-  return report.value?.top_foods || []
+  return (report.value?.top_foods || []).map((food) => ({
+    ...food,
+    food_tags: null,
+  }))
 })
+const getCardTags = (food: { food_tags?: FavoriteFoodItem['food_tags'] | null }, limit = 4) => {
+  return getFoodTagChips(food.food_tags, limit)
+}
 const profileHighlights = computed<ProfileHighlight[]>(() => {
   if (!report.value) {
     return [
@@ -549,6 +560,27 @@ useDidShow(() => {
   .favorite-meta {
     font-size: 20px;
     color: var(--ink-500);
+  }
+
+  .food-tag-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin-top: 8px;
+    min-width: 0;
+  }
+
+  .food-tag-chip {
+    max-width: 132px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(255, 245, 239, 0.9);
+    color: #b86b52;
+    font-size: 18px;
+    line-height: 1.35;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }
 </style>

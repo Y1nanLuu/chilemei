@@ -18,6 +18,9 @@
           <view class="food-content">
             <text class="food-name">{{ item.name }}</text>
             <text class="food-meta">{{ item.location }} · RMB {{ item.price }}</text>
+            <view v-if="getCardTags(item).length" class="food-tag-row">
+              <text v-for="tag in getCardTags(item)" :key="tag" class="food-tag-chip">{{ tag }}</text>
+            </view>
             <text class="food-score">得分 {{ item.score }} · 喜欢 {{ item.like_count }} · 劝退 {{ item.dislike_count }}</text>
             <text class="food-time">点赞时间 {{ formatTime(item.saved_at) }}</text>
           </view>
@@ -32,6 +35,7 @@ import Taro, { useDidShow } from '@tarojs/taro'
 import { ref } from 'vue'
 import type { FoodInteractionItem } from '@/utils/interactions'
 import { getFoodInteractions } from '@/utils/interactions'
+import { getFoodTagChips } from '@/utils/food-tags'
 import { getMediaUrl } from '@/utils/request'
 
 const items = ref<FoodInteractionItem[]>([])
@@ -43,6 +47,10 @@ const loadData = () => {
 
 const getCardImage = (url?: string | null) => {
   return getMediaUrl(url) || PLACEHOLDER_IMAGE
+}
+
+const getCardTags = (item: FoodInteractionItem, limit = 5) => {
+  return getFoodTagChips(item.food_tags, limit)
 }
 
 const formatTime = (value: string) => value.replace('T', ' ').slice(0, 16)
@@ -133,6 +141,27 @@ useDidShow(() => {
   .food-name {
     font-size: 28px;
     margin-bottom: 8px;
+  }
+
+  .food-tag-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 8px 0 4px;
+    min-width: 0;
+  }
+
+  .food-tag-chip {
+    max-width: 150px;
+    padding: 5px 11px;
+    border-radius: 999px;
+    background: rgba(255, 245, 239, 0.9);
+    color: #b86b52;
+    font-size: 18px;
+    line-height: 1.35;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }
 </style>

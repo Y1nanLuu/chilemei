@@ -116,6 +116,9 @@
                   <view class="hero-bottom">
                     <text class="hero-name">{{ dish.name }}</text>
                     <text class="hero-meta">{{ dish.location }} | RMB {{ dish.price }}</text>
+                    <view v-if="getCardTags(dish).length" class="food-tag-row hero-food-tags">
+                      <text v-for="tag in getCardTags(dish, 4)" :key="tag" class="food-tag-chip food-tag-chip--dark">{{ tag }}</text>
+                    </view>
                     <view class="hero-rating">
                       <text class="star">★</text>
                       <text>得分 {{ dish.score }}</text>
@@ -167,6 +170,9 @@
               <view>
                 <text class="recommend-name">{{ dish.name }}</text>
                 <text class="recommend-summary">{{ dish.location }}</text>
+                <view v-if="getCardTags(dish).length" class="food-tag-row recommend-tag-row">
+                  <text v-for="tag in getCardTags(dish)" :key="tag" class="food-tag-chip">{{ tag }}</text>
+                </view>
               </view>
               <view class="recommend-foot">
                 <text class="recommend-meta">得分 {{ dish.score }} | 点赞 {{ getLikeCount(dish) }} | {{ isFavorited(dish.food_id) ? '已收藏' : '未收藏' }} | 劝退 {{ getDislikeCount(dish) }}</text>
@@ -245,6 +251,7 @@ import {
   type InteractionType,
 } from '../../utils/interactions'
 import { consumeUserPreferencesUpdated } from '../../utils/preferences'
+import { getFoodTagChips } from '../../utils/food-tags'
 import { getMediaUrl } from '../../utils/request'
 
 const headlineChars = Array.from('把今天想记住的美味，轻轻存下来')
@@ -317,6 +324,10 @@ const showSearchSuggestions = computed(() => {
 
 const getCardImage = (url?: string | null) => {
   return getMediaUrl(url) || PLACEHOLDER_IMAGE
+}
+
+const getCardTags = (food: FoodRecommendationCard, limit = 5) => {
+  return getFoodTagChips(food.food_tags, limit)
 }
 
 const isLiked = (foodId: number) => {
@@ -1030,6 +1041,41 @@ onBeforeUnmount(() => {
     gap: 8px;
     font-size: 22px;
     font-weight: 700;
+  }
+
+  .food-tag-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .hero-food-tags {
+    margin: 0 0 12px;
+  }
+
+  .recommend-tag-row {
+    margin-top: 10px;
+  }
+
+  .food-tag-chip {
+    max-width: 160px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: rgba(255, 245, 239, 0.88);
+    color: #b86b52;
+    font-size: 19px;
+    line-height: 1.35;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .food-tag-chip--dark {
+    background: rgba(22, 20, 18, 0.5);
+    color: #fffdf9;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.32);
   }
 
   .star {

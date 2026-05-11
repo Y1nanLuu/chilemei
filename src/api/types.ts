@@ -42,6 +42,7 @@ export type FoodRecord = {
   rating_level: RatingLevelValue
   review_text: string
   image_url: string | null
+  food_tags?: FoodTagExtraction | null
   uploaded_at: string
   like_count?: number
   dislike_count?: number
@@ -75,6 +76,7 @@ export type FoodRecommendationCard = {
   like_count: number
   dislike_count: number
   cover_image_url: string | null
+  food_tags: FoodTagExtraction
   is_favorited?: boolean
 }
 
@@ -169,6 +171,24 @@ export type FoodListQuery = {
   end_time?: string
 }
 
+export type FoodTagExtraction = {
+  taste_preferences: string[]
+  taboo_candidates: string[]
+  cuisines: string[]
+  ingredients: string[]
+  seasonings: string[]
+  cooking_methods: string[]
+  texture_tags: string[]
+  scenario_tags: string[]
+  recommendation_tags: string[]
+  chili_level: number
+  has_chili: boolean
+  has_sichuan_pepper: boolean
+  delicious_level: number
+  health_tags: string[]
+  summary: string
+}
+
 export type CreateFoodRecordPayload = {
   food_id?: number
   food?: {
@@ -182,6 +202,7 @@ export type CreateFoodRecordPayload = {
   review_text?: string
   image_filename?: string
   image_url?: string
+  food_tags?: FoodTagExtraction
 }
 
 export type UpdateFoodRecordPayload = {
