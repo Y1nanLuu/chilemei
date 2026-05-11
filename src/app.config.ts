@@ -1,20 +1,46 @@
 ﻿export default defineAppConfig({
+  // 主包：仅保留 TabBar 页面，确保主包控制在 1MB 以内
   pages: [
-    'pages/register/index',
-    'pages/check/index',
-    'pages/food/index',
-    'pages/interactions/comments/index',
-    'pages/interactions/likes/index',
-    'pages/interactions/favorites/index',
-    'pages/interactions/wishlist/index',
-    'pages/preferences/index',
     'pages/index/index',
     'pages/record/index',
     'pages/publish/index',
     'pages/rank/index',
     'pages/profile/index',
-    'pages/profile/edit/index',
   ],
+  // 分包配置
+  subPackages: [
+    {
+      root: 'packageUser',
+      pages: [
+        'register/index',
+        'edit/index',
+        'preferences/index'
+      ]
+    },
+    {
+      root: 'packageFood',
+      pages: [
+        'food/index',
+        'check/index'
+      ]
+    },
+    {
+      root: 'packageInteractions/interactions',
+      pages: [
+        'comments/index',
+        'likes/index',
+        'favorites/index',
+        'wishlist/index'
+      ]
+    }
+  ],
+  // 分包预下载规则，提升用户体验
+  preloadRule: {
+    'pages/index/index': {
+      network: 'all',
+      packages: ['packageFood', 'packageUser']
+    }
+  },
   window: {
     backgroundTextStyle: 'light',
     navigationBarBackgroundColor: '#f9fbff',

@@ -91,11 +91,11 @@
 <script setup lang="ts">
 import Taro, { useDidShow } from '@tarojs/taro'
 import { computed, reactive, ref } from 'vue'
-import { getCurrentUser, updateUserProfile } from '../../../api/user'
-import type { UserCampus, UserGender, UserGrade, UserProfile } from '../../../api/types'
-import { getCloudEnv } from '../../../utils/cloud'
-import { getCurrentUser as getStoredCurrentUser, hasAccessToken, setCurrentUser } from '../../../utils/auth'
-import { getMediaUrl } from '../../../utils/request'
+import { getCurrentUser, updateUserProfile } from '@/api/user'
+import type { UserCampus, UserGender, UserGrade, UserProfile } from '@/api/types'
+import { getCloudEnv } from '@/utils/cloud'
+import { getCurrentUser as getStoredCurrentUser, hasAccessToken, setCurrentUser } from '@/utils/auth'
+import { getMediaUrl } from '@/utils/request'
 
 const genderOptions: Array<{ label: string; value: UserGender }> = [
   { label: '保密', value: 'unknown' },

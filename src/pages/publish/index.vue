@@ -763,7 +763,8 @@ onBeforeUnmount(() => {
   .field-readonly,
   .field-textarea {
     width: 100%;
-    min-height: 96px;
+    min-height: 96px; // 原为 240px，缩短到约 3-4 行高度
+    height: 96px;     // 建议给个固定高度，防止高度坍塌或过度伸长
     border-radius: 24px;
     background: rgba(255, 255, 255, 0.92);
     border: 1px solid rgba(217, 242, 235, 0.88);
@@ -814,7 +815,7 @@ onBeforeUnmount(() => {
     padding: 24px;
     line-height: 1.6;
     resize: none;
-    height: auto;
+    // height: auto;
     font-weight: 400;
   }
 

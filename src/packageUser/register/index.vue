@@ -30,8 +30,8 @@
 <script setup lang="ts">
 import Taro, { useDidShow } from '@tarojs/taro'
 import { reactive, ref } from 'vue'
-import { login, wechatLogin } from '../../api/auth'
-import { hasAccessToken, setAccessToken, setCurrentUser } from '../../utils/auth'
+import { login, wechatLogin } from '@/api/auth'
+import { hasAccessToken, setAccessToken, setCurrentUser } from '@/utils/auth'
 
 const form = reactive({
   username: '',

@@ -120,10 +120,10 @@
 <script setup lang="ts">
 import Taro, { useDidShow } from '@tarojs/taro'
 import { reactive, ref } from 'vue'
-import { getCurrentUser, updateUserPreferences } from '../../api/user'
-import type { UserPreferenceProfile } from '../../api/types'
-import { hasAccessToken } from '../../utils/auth'
-import { markUserPreferencesUpdated } from '../../utils/preferences'
+import { getCurrentUser, updateUserPreferences } from '@/api/user'
+import type { UserPreferenceProfile } from '@/api/types'
+import { hasAccessToken } from '@/utils/auth'
+import { markUserPreferencesUpdated } from '@/utils/preferences'
 
 type PreferenceField = 'taste_preferences' | 'taboo_list'
 

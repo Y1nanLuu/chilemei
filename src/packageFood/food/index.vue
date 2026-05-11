@@ -100,10 +100,10 @@
 <script setup lang="ts">
 import Taro, { useDidShow } from '@tarojs/taro'
 import { computed, ref } from 'vue'
-import { createFoodComment, createFoodFavorite, deleteFoodFavorite, getFoodComments, getFoodDetail } from '../../api/foods'
-import type { CreateCommentPayload, FoodComment, FoodDetailResponse } from '../../api/types'
-import { hasAccessToken } from '../../utils/auth'
-import { getMediaUrl } from '../../utils/request'
+import { createFoodComment, createFoodFavorite, deleteFoodFavorite, getFoodComments, getFoodDetail } from '@/api/foods'
+import type { CreateCommentPayload, FoodComment, FoodDetailResponse } from '@/api/types'
+import { hasAccessToken } from '@/utils/auth'
+import { getMediaUrl } from '@/utils/request'
 
 const route = Taro.getCurrentInstance().router?.params || {}
 const foodId = Number(route.foodId || '0')

@@ -33,9 +33,9 @@
 <script setup lang="ts">
 import Taro, { useDidShow } from '@tarojs/taro'
 import { ref } from 'vue'
-import { getFavoriteFoods } from '../../../api/foods'
-import type { FavoriteFoodItem } from '../../../api/types'
-import { getMediaUrl } from '../../../utils/request'
+import { getFavoriteFoods } from '@/api/foods'
+import type { FavoriteFoodItem } from '@/api/types'
+import { getMediaUrl } from '@/utils/request'
 
 const items = ref<FavoriteFoodItem[]>([])
 const loading = ref(false)
@@ -75,7 +75,7 @@ const formatTime = (value?: string) => (value ? value.replace('T', ' ').slice(0,
 
 const openFood = (foodId: number) => {
   Taro.navigateTo({
-    url: `/pages/food/index?foodId=${foodId}`,
+    url: `/packageFood/food/index?foodId=${foodId}`,
   })
 }
 

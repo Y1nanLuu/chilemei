@@ -145,11 +145,11 @@ import {
   getFoodRecordDetail,
   getFoodRecords,
   updateFoodRecord,
-} from '../../api/foods'
-import type { FoodComment, FoodRecord, Sentiment, UpdateFoodRecordPayload } from '../../api/types'
-import { hasAccessToken } from '../../utils/auth'
-import { RATING_LEVEL_OPTIONS, type RatingLevelLabel, ratingLabelToValue, ratingLevelToLabel } from '../../utils/rating'
-import { getMediaUrl } from '../../utils/request'
+} from '@/api/foods'
+import type { FoodComment, FoodRecord, Sentiment, UpdateFoodRecordPayload } from '@/api/types'
+import { hasAccessToken } from '@/utils/auth'
+import { RATING_LEVEL_OPTIONS, type RatingLevelLabel, ratingLabelToValue, ratingLevelToLabel } from '@/utils/rating'
+import { getMediaUrl } from '@/utils/request'
 
 const route = Taro.getCurrentInstance().router?.params || {}
 const recordId = route.id

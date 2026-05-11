@@ -483,7 +483,7 @@ const loadData = async () => {
 
 const openFoodDetail = (foodId: number) => {
   Taro.navigateTo({
-    url: `/pages/food/index?foodId=${foodId}`,
+    url: `/packageFood/food/index?foodId=${foodId}`,
   })
 }
 

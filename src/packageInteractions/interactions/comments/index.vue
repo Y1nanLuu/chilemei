@@ -30,8 +30,8 @@
 <script setup lang="ts">
 import Taro, { useDidShow } from '@tarojs/taro'
 import { ref } from 'vue'
-import type { LocalFoodComment } from '../../../utils/food-comments'
-import { getLocalFoodComments } from '../../../utils/food-comments'
+import type { LocalFoodComment } from '@/utils/food-comments'
+import { getLocalFoodComments } from '@/utils/food-comments'
 
 const items = ref<LocalFoodComment[]>([])
 
@@ -53,7 +53,7 @@ const formatTime = (value?: string) => {
 
 const openFood = (foodId: number) => {
   Taro.navigateTo({
-    url: `/pages/food/index?foodId=${foodId}`,
+    url: `/packageFood/food/index?foodId=${foodId}`,
   })
 }
 

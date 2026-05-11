@@ -30,9 +30,9 @@
 <script setup lang="ts">
 import Taro, { useDidShow } from '@tarojs/taro'
 import { ref } from 'vue'
-import type { FoodInteractionItem } from '../../../utils/interactions'
-import { getFoodInteractions } from '../../../utils/interactions'
-import { getMediaUrl } from '../../../utils/request'
+import type { FoodInteractionItem } from '@/utils/interactions'
+import { getFoodInteractions } from '@/utils/interactions'
+import { getMediaUrl } from '@/utils/request'
 
 const items = ref<FoodInteractionItem[]>([])
 const PLACEHOLDER_IMAGE = 'https://dummyimage.com/640x420/eaf1ff/7a90c2&text=Chilemei'
@@ -49,7 +49,7 @@ const formatTime = (value: string) => value.replace('T', ' ').slice(0, 16)
 
 const openFood = (foodId: number) => {
   Taro.navigateTo({
-    url: `/pages/food/index?foodId=${foodId}`,
+    url: `/packageFood/food/index?foodId=${foodId}`,
   })
 }
 

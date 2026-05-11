@@ -4,6 +4,7 @@ import devConfig from './dev'
 import prodConfig from './prod'
 import NutUIResolver from '@nutui/auto-import-resolver'
 import Components from 'unplugin-vue-components/webpack'
+import path from 'path' // 或者 const path = require('path')
 
 // https://taro-docs.jd.com/docs/next/config#defineconfig-helper
 export default defineConfig<'webpack5'>(async (merge, { command, mode }) => {
@@ -17,6 +18,13 @@ export default defineConfig<'webpack5'>(async (merge, { command, mode }) => {
       }
       // Default to Taro 750 design width
       return 750
+    },
+    alias: {
+    // 这里的 '..' 是因为 config 文件夹通常在根目录下，向上跳一级才能找到 src
+    '@': path.resolve(__dirname, '..', 'src'),
+    '@/api': path.resolve(__dirname, '..', 'src/api'),
+    '@/utils': path.resolve(__dirname, '..', 'src/utils'),
+    '@/components': path.resolve(__dirname, '..', 'src/components'),
     },
     deviceRatio: {
       640: 2.34 / 2,

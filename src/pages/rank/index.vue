@@ -184,7 +184,7 @@ const switchScope = (scope: 'global' | 'mine') => {
 
 const openFood = (item: FoodRankingItem) => {
   Taro.navigateTo({
-    url: `/pages/food/index?foodId=${item.food_id}`,
+    url: `/packageFood/food/index?foodId=${item.food_id}`,
   })
 }
 
