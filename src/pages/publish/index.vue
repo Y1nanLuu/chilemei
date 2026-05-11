@@ -140,14 +140,14 @@
             <view class="image-picker" @click="pickRecordImage">
               <image v-if="dto.image_url" class="preview-image" :src="recordPreviewUrl" mode="aspectFill" />
               <view v-else class="placeholder">
-                <text class="text">{{ loading ? '上传中...' : '点击上传本次记录图片' }}</text>
+                <text class="text">{{ imagePlaceholderText }}</text>
               </view>
             </view>
           </view>
 
           <view class="submit-wrap">
             <view class="submit-btn" @click="onSubmit">
-              {{ loading ? '处理中...' : '发布美食' }}
+              {{ submitButtonText }}
             </view>
           </view>
         </view>
@@ -159,7 +159,13 @@
 <script setup lang="ts">
 import Taro, { useLoad } from '@tarojs/taro'
 import { computed, onBeforeUnmount, reactive, ref } from 'vue'
-import { createFoodRecord, deleteUploadedImage, getFoodRecords, uploadFoodImage } from '../../api/foods'
+import {
+  createFoodRecord,
+  createSeedreamFoodImage,
+  deleteUploadedImage,
+  getFoodRecords,
+  uploadFoodImage,
+} from '../../api/foods'
 import type { CreateFoodRecordPayload, FoodRecord, Sentiment } from '../../api/types'
 import { hasAccessToken } from '../../utils/auth'
 import { type RatingLevelValue } from '../../utils/rating'
@@ -189,6 +195,8 @@ const dto = reactive({
 })
 
 const loading = ref(false)
+const aiImageProcessing = ref(false)
+const aiImageProcessed = ref(false)
 const suggestionLoading = ref(false)
 const nameInputFocused = ref(false)
 const fromReuse = ref(false)
@@ -213,6 +221,26 @@ const selectedFoodSummary = computed(() => {
 })
 
 const recordPreviewUrl = computed(() => getMediaUrl(dto.image_url))
+
+const imagePlaceholderText = computed(() => {
+  if (aiImageProcessing.value) {
+    return 'AI 正在生成美食图片...'
+  }
+
+  if (loading.value) {
+    return '上传中...'
+  }
+
+  return '点击上传本次记录图片'
+})
+
+const submitButtonText = computed(() => {
+  if (aiImageProcessing.value) {
+    return dto.image_url ? 'AI 美化图片中...' : 'AI 生成图片中...'
+  }
+
+  return loading.value ? '处理中...' : '发布美食'
+})
 
 const clearTimers = () => {
   if (blurTimer) {
@@ -429,6 +457,7 @@ const pickRecordImage = async () => {
     dto.image_url = uploadRes.image_url
     dto.image_filename = uploadRes.image_filename || uploadRes.stored_path.split('/').pop() || uploadRes.image_url.split('/').pop() || ''
     dto.image_file_id = uploadRes.file_id || uploadRes.image_url
+    aiImageProcessed.value = false
 
     if (previousImageFileId && previousImageFileId !== dto.image_file_id) {
       await cleanupTempImage(previousImageFileId)
@@ -446,8 +475,65 @@ const clearRecordImage = async () => {
   dto.image_url = ''
   dto.image_filename = ''
   dto.image_file_id = ''
+  aiImageProcessed.value = false
 
   await cleanupTempImage(previousImageFileId)
+}
+
+const getRecordImageSource = () => {
+  if (!dto.image_url) {
+    return {}
+  }
+
+  if (
+    dto.image_file_id &&
+    /^(cloud|http):\/\//.test(dto.image_file_id)
+  ) {
+    return {
+      sourceImageFileId: dto.image_file_id,
+    }
+  }
+
+  return {
+    sourceImageUrl: getMediaUrl(dto.image_url),
+  }
+}
+
+const applyAiFoodImage = async () => {
+  if (aiImageProcessed.value && dto.image_url) {
+    return
+  }
+
+  const previousImageFileId = dto.image_file_id
+  const source = getRecordImageSource()
+  const loadingTitle = dto.image_url ? '正在美化图片' : '正在生成图片'
+
+  aiImageProcessing.value = true
+  Taro.showLoading({
+    title: loadingTitle,
+    mask: true,
+  })
+
+  try {
+    const imageRes = await createSeedreamFoodImage({
+      foodName: dto.food.name.trim(),
+      location: dto.food.location.trim(),
+      reviewText: dto.review_text.trim(),
+      ...source,
+    })
+
+    dto.image_url = imageRes.image_url
+    dto.image_filename = imageRes.image_filename || imageRes.stored_path.split('/').pop() || imageRes.image_url.split('/').pop() || ''
+    dto.image_file_id = imageRes.file_id || imageRes.image_url
+    aiImageProcessed.value = true
+
+    if (previousImageFileId && previousImageFileId !== dto.image_file_id) {
+      await cleanupTempImage(previousImageFileId)
+    }
+  } finally {
+    aiImageProcessing.value = false
+    Taro.hideLoading()
+  }
 }
 
 const resetForm = () => {
@@ -460,6 +546,7 @@ const resetForm = () => {
   dto.image_url = ''
   dto.image_filename = ''
   dto.image_file_id = ''
+  aiImageProcessed.value = false
   selectedFood.value = null
   suggestedFoods.value = []
   fromReuse.value = false
@@ -491,6 +578,7 @@ const applyPrefill = (params: Record<string, string>) => {
     dto.image_url = decodeURIComponent(params.recordImageUrl)
     dto.image_filename = dto.image_url.split('/').pop() || ''
     dto.image_file_id = dto.image_url
+    aiImageProcessed.value = false
   }
 
   if (params.reviewText) {
@@ -544,6 +632,8 @@ const onSubmit = async () => {
 
   try {
     loading.value = true
+    await applyAiFoodImage()
+
     const payload: CreateFoodRecordPayload = {
       sentiment: dto.sentiment,
       rating_level: dto.rating_level,

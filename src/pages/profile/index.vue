@@ -109,16 +109,16 @@ const profileHighlights = computed<ProfileHighlight[]>(() => {
     return [
       { label: '已记录', value: '0', path: '/pages/record/index', isTab: true },
       { label: '总消费', value: 'RMB --' },
-      { label: '口味画像', value: '去设置', path: '/pages/preferences/index' },
-      { label: '收藏', value: String(favoriteFoods.value.length), path: '/pages/interactions/favorites/index' },
+      { label: '口味画像', value: '去设置', path: '/packageUser/preferences/index' },
+      { label: '收藏', value: String(favoriteFoods.value.length), path: '/packageInteractions/interactions/favorites/index' },
     ]
   }
 
   return [
     { label: '已记录', value: String(report.value.total_records), path: '/pages/record/index', isTab: true },
     { label: '总消费', value: `RMB ${report.value.total_spend}` },
-    { label: '口味画像', value: '去设置', path: '/pages/preferences/index' },
-    { label: '收藏', value: String(favoriteFoods.value.length), path: '/pages/interactions/favorites/index' },
+    { label: '口味画像', value: '去设置', path: '/packageUser/preferences/index' },
+    { label: '收藏', value: String(favoriteFoods.value.length), path: '/packageInteractions/interactions/favorites/index' },
   ]
 })
 
@@ -181,7 +181,7 @@ const openInteractionPage = (path: string) => {
 
 const openEditProfile = () => {
   Taro.navigateTo({
-    url: '/pages/profile/edit/index',
+    url: '/packageUser/edit/index',
     fail: (error) => {
       const message = error?.errMsg || '编辑资料页面打开失败'
       Taro.showToast({ title: message, icon: 'none' })
