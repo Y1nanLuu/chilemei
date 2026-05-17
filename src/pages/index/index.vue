@@ -88,7 +88,7 @@
       <view v-else-if="errorMessage" class="status-card glass-card">{{ errorMessage }}</view>
       <template v-else>
         <view class="section-title">
-          <text class="title">今日推荐</text>
+          <text class="title">猜你喜欢</text>
         </view>
 
         <view v-if="dailySlides.length" class="hero-swiper-wrap">
@@ -155,7 +155,7 @@
         <view v-else class="status-card glass-card">暂无今日推荐</view>
 
         <view class="section-title">
-          <text class="title">个性化推荐</text>
+          <text class="title">今日推荐</text>
         </view>
 
         <view v-if="recommendations.length" class="recommend-list">
@@ -368,15 +368,19 @@ const isRecommendationEmptyError = (error: unknown) => {
   )
 }
 
+const hasValidFoodId = (food?: FoodRecommendationCard | null) => {
+  return Number.isFinite(Number(food?.food_id)) && Number(food?.food_id) > 0
+}
+
 const rebuildDailySlides = () => {
   const out: FoodRecommendationCard[] = []
   const seen = new Set<number>()
-  if (dailyPick.value) {
+  if (hasValidFoodId(dailyPick.value)) {
     out.push(dailyPick.value)
     seen.add(dailyPick.value.food_id)
   }
   for (const item of recommendations.value) {
-    if (seen.has(item.food_id)) {
+    if (!hasValidFoodId(item) || seen.has(item.food_id)) {
       continue
     }
     out.push(item)
@@ -455,7 +459,8 @@ const loadData = async () => {
     const preferencesUpdated = consumeUserPreferencesUpdated()
 
     try {
-      dailyPick.value = await getDailyRecommendations()
+      const nextDailyPick = await getDailyRecommendations()
+      dailyPick.value = hasValidFoodId(nextDailyPick) ? nextDailyPick : null
     } catch (error) {
       if (!isRecommendationEmptyError(error)) {
         throw error
@@ -466,7 +471,9 @@ const loadData = async () => {
 
     try {
       const personalized = await getPersonalizedRecommendations()
-      recommendations.value = Array.isArray(personalized) ? personalized : []
+      recommendations.value = Array.isArray(personalized)
+        ? personalized.filter(hasValidFoodId)
+        : []
     } catch (error) {
       if (!isRecommendationEmptyError(error)) {
         throw error

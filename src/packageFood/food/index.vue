@@ -20,7 +20,16 @@
 
         <view class="detail-card glass-card info-shell">
           <view class="title-row">
-            <text class="food-name">{{ detail.name || `食物 ${detail.food_id}` }}</text>
+            <view class="food-title-main">
+              <text class="food-name">{{ detail.name || `食物 ${detail.food_id}` }}</text>
+              <text
+                class="favorite-star"
+                :class="{ active: detail.is_favorited, disabled: favoriteLoading }"
+                @tap.stop="toggleFavorite"
+              >
+                {{ detail.is_favorited ? '★' : '☆' }}
+              </text>
+            </view>
             <text class="food-score">得分 {{ detail.score || 0 }}</text>
           </view>
           <view class="meta-row">
@@ -30,11 +39,8 @@
             <text>劝退 {{ detail.dislike_count || 0 }}</text>
           </view>
           <view class="stat-row">
-            <view class="stat-pill">{{ galleryImages.length }} 张图片</view>
-            <view class="stat-pill">food_id {{ detail.food_id }}</view>
-            <view class="stat-pill favorite-pill" @tap="toggleFavorite">
-              {{ detail.is_favorited ? '已收藏' : '收藏' }}
-            </view>
+            <view v-for="tag in foodTagChips" :key="tag" class="stat-pill">{{ tag }}</view>
+            <text v-if="!foodTagChips.length" class="tag-empty">暂无标签</text>
           </view>
         </view>
 
@@ -103,6 +109,7 @@ import { computed, ref } from 'vue'
 import { createFoodComment, createFoodFavorite, deleteFoodFavorite, getFoodComments, getFoodDetail } from '@/api/foods'
 import type { CreateCommentPayload, FoodComment, FoodDetailResponse } from '@/api/types'
 import { hasAccessToken } from '@/utils/auth'
+import { getFoodTagChips } from '@/utils/food-tags'
 import { getMediaUrl } from '@/utils/request'
 
 const route = Taro.getCurrentInstance().router?.params || {}
@@ -158,6 +165,8 @@ const comments = computed(() => {
     return timeB - timeA
   })
 })
+
+const foodTagChips = computed(() => getFoodTagChips(detail.value?.food_tags, 8))
 
 const formatDateTime = (value?: string) => {
   if (!value) {
@@ -369,10 +378,39 @@ useDidShow(() => {
     flex-wrap: wrap;
   }
 
+  .food-title-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
   .food-name {
+    min-width: 0;
     font-size: 36px;
     font-weight: 800;
     color: #5d433a;
+    line-height: 1.28;
+    word-break: break-word;
+  }
+
+  .favorite-star {
+    flex-shrink: 0;
+    color: #ef9172;
+    font-size: 42px;
+    line-height: 1;
+    font-weight: 800;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .favorite-star.active {
+    color: #ffd052;
+    text-shadow: 0 2px 8px rgba(255, 184, 72, 0.32);
+  }
+
+  .favorite-star.disabled {
+    opacity: 0.58;
   }
 
   .food-score {
@@ -403,9 +441,9 @@ useDidShow(() => {
     font-weight: 700;
   }
 
-  .favorite-pill {
-    background: #fff7f3;
-    border: 1px solid rgba(239, 145, 114, 0.28);
+  .tag-empty {
+    color: #9aa7a0;
+    font-size: 20px;
   }
 
   .section-title {

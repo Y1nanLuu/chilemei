@@ -104,7 +104,7 @@ import { getFoodTagChips } from '../../utils/food-tags'
 const tabs = [
   { apiKey: 'daily' as const, label: 'Daily' },
   { apiKey: 'weekly' as const, label: 'Weekly' },
-  { apiKey: 'all' as const, label: 'Monthly' },
+  { apiKey: 'all' as const, label: 'All Time' },
 ]
 
 const scopeOptions = [

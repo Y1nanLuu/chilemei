@@ -45,13 +45,13 @@ export const getFoodRecordComments = (recordId: string | number) => {
 
 export const getDailyRecommendations = () => {
   return request<FoodRecommendationCard>({
-    url: '/foods/recommendations/daily',
+    url: '/foods/recommendations/guess-you-like?limit=10',
   })
 }
 
 export const getPersonalizedRecommendations = () => {
   return request<FoodRecommendationCard[]>({
-    url: '/foods/recommendations/personalized',
+    url: '/foods/recommendations/today',
   })
 }
 

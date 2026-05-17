@@ -94,6 +94,39 @@
             />
           </view>
 
+          <view class="field tag-field">
+            <view class="field-head">
+              <text class="field-label">添加标签</text>
+              <view
+                class="mini-action-btn"
+                :class="{ disabled: tagExtracting }"
+                @click="generateAiTags"
+              >
+                {{ tagExtracting ? '生成中...' : 'AI 智能生成' }}
+              </view>
+            </view>
+            <view class="tag-input-row">
+              <input
+                class="tag-input"
+                :value="tagInput"
+                confirm-type="done"
+                placeholder="输入标签，例如 香辣、宵夜"
+                @input="handleTagInput"
+                @confirm="addTagFromInput"
+              />
+              <view class="tag-add-btn" @click="addTagFromInput">添加</view>
+            </view>
+            <view class="tag-chip-row">
+              <view v-for="tag in publishTags" :key="tag" class="publish-tag-chip">
+                <text class="publish-tag-text">{{ tag }}</text>
+                <text class="publish-tag-remove" @click.stop="removePublishTag(tag)">×</text>
+              </view>
+              <text v-if="!publishTags.length" class="tag-empty-text">
+                暂无标签，可以手动添加或让 AI 生成
+              </text>
+            </view>
+          </view>
+
           <view class="field mood-field">
             <text class="field-label">心情</text>
             <view class="mood-row">
@@ -143,6 +176,9 @@
                 <text class="text">{{ imagePlaceholderText }}</text>
               </view>
             </view>
+          </view>
+          <view class="ai-image-action" @click="handleAiImageClick">
+            {{ aiImageButtonText }}
           </view>
 
           <view class="submit-wrap">
@@ -195,6 +231,9 @@ const dto = reactive({
   image_file_id: '',
 })
 
+const tagInput = ref('')
+const publishTags = ref<string[]>([])
+const foodTagsDraft = ref<FoodTagExtraction | null>(null)
 const loading = ref(false)
 const aiImageProcessing = ref(false)
 const aiImageProcessed = ref(false)
@@ -234,6 +273,14 @@ const imagePlaceholderText = computed(() => {
   }
 
   return '点击上传本次记录图片'
+})
+
+const aiImageButtonText = computed(() => {
+  if (aiImageProcessing.value) {
+    return dto.image_url ? 'AI 美化中...' : 'AI 生图中...'
+  }
+
+  return dto.image_url ? 'AI 智能美化' : 'AI 智能生图'
 })
 
 const submitButtonText = computed(() => {
@@ -288,6 +335,35 @@ const handleFoodPriceInput = (event) => {
 
 const handleReviewTextInput = (event) => {
   dto.review_text = event.detail.value
+}
+
+const handleTagInput = (event) => {
+  tagInput.value = event.detail.value
+}
+
+const normalizePublishTag = (tag: string) => tag.trim().replace(/^#/, '').slice(0, 12)
+
+const addPublishTag = (rawTag: string) => {
+  const tag = normalizePublishTag(rawTag)
+
+  if (!tag || publishTags.value.includes(tag)) {
+    return
+  }
+
+  publishTags.value = [...publishTags.value, tag].slice(0, 16)
+}
+
+const addTagFromInput = () => {
+  tagInput.value
+    .split(/[,\s，、]+/)
+    .map((tag) => tag.trim())
+    .filter(Boolean)
+    .forEach(addPublishTag)
+  tagInput.value = ''
+}
+
+const removePublishTag = (tag: string) => {
+  publishTags.value = publishTags.value.filter((item) => item !== tag)
 }
 
 const setSentiment = (value: Sentiment) => {
@@ -506,7 +582,7 @@ const getRecordImageSource = () => {
 }
 
 const applyAiFoodImage = async () => {
-  if (aiImageProcessed.value && dto.image_url) {
+  if (aiImageProcessing.value) {
     return
   }
 
@@ -542,6 +618,20 @@ const applyAiFoodImage = async () => {
   }
 }
 
+const handleAiImageClick = async () => {
+  if (!dto.food.name.trim()) {
+    Taro.showToast({ title: '请先输入美食名称', icon: 'none' })
+    return
+  }
+
+  try {
+    await applyAiFoodImage()
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'AI 图片处理失败'
+    Taro.showToast({ title: message, icon: 'none' })
+  }
+}
+
 const buildFoodTagsFallback = (): FoodTagExtraction => {
   const deliciousLevel = dto.sentiment === 'dislike'
     ? Math.min(3, dto.rating_level)
@@ -567,6 +657,50 @@ const buildFoodTagsFallback = (): FoodTagExtraction => {
     health_tags: [],
     summary: dto.food.name.trim(),
   }
+}
+
+const getTagChipsFromExtraction = (tags: FoodTagExtraction) => {
+  return Array.from(new Set([
+    ...(tags.recommendation_tags || []),
+    ...(tags.taste_preferences || []),
+    ...(tags.cuisines || []),
+    ...(tags.ingredients || []),
+    ...(tags.seasonings || []),
+    ...(tags.cooking_methods || []),
+    ...(tags.texture_tags || []),
+    ...(tags.scenario_tags || []),
+    ...(tags.health_tags || []),
+    tags.has_chili ? `辣度${tags.chili_level}` : '',
+    tags.has_sichuan_pepper ? '花椒' : '',
+    tags.delicious_level >= 4 ? '高好评' : '',
+  ].map((tag) => normalizePublishTag(tag)).filter(Boolean))).slice(0, 16)
+}
+
+const filterTagsBySelection = (
+  tags: FoodTagExtraction,
+  selectedTags: string[],
+): FoodTagExtraction => {
+  const selectedSet = new Set(selectedTags)
+  const filterList = (items: string[]) => items.filter((item) => selectedSet.has(normalizePublishTag(item)))
+
+  return {
+    ...tags,
+    taste_preferences: filterList(tags.taste_preferences),
+    taboo_candidates: filterList(tags.taboo_candidates),
+    cuisines: filterList(tags.cuisines),
+    ingredients: filterList(tags.ingredients),
+    seasonings: filterList(tags.seasonings),
+    cooking_methods: filterList(tags.cooking_methods),
+    texture_tags: filterList(tags.texture_tags),
+    scenario_tags: filterList(tags.scenario_tags),
+    health_tags: filterList(tags.health_tags),
+    recommendation_tags: selectedTags,
+  }
+}
+
+const buildPublishFoodTags = (): FoodTagExtraction => {
+  const baseTags = foodTagsDraft.value || buildFoodTagsFallback()
+  return filterTagsBySelection(baseTags, publishTags.value)
 }
 
 const extractPublishFoodTags = async () => {
@@ -597,6 +731,22 @@ const extractPublishFoodTags = async () => {
   }
 }
 
+const generateAiTags = async () => {
+  if (tagExtracting.value) {
+    return
+  }
+
+  if (!dto.food.name.trim()) {
+    Taro.showToast({ title: '请先输入美食名称', icon: 'none' })
+    return
+  }
+
+  const tags = await extractPublishFoodTags()
+  foodTagsDraft.value = tags
+  publishTags.value = getTagChipsFromExtraction(tags)
+  Taro.showToast({ title: '标签已生成', icon: 'none' })
+}
+
 const resetForm = () => {
   dto.food.name = ''
   dto.food.location = ''
@@ -608,6 +758,9 @@ const resetForm = () => {
   dto.image_filename = ''
   dto.image_file_id = ''
   aiImageProcessed.value = false
+  tagInput.value = ''
+  publishTags.value = []
+  foodTagsDraft.value = null
   selectedFood.value = null
   suggestedFoods.value = []
   fromReuse.value = false
@@ -665,7 +818,7 @@ const onSubmit = async () => {
     return
   }
 
-  if (loading.value) {
+  if (loading.value || tagExtracting.value || aiImageProcessing.value) {
     return
   }
 
@@ -693,8 +846,7 @@ const onSubmit = async () => {
 
   try {
     loading.value = true
-    const foodTags = await extractPublishFoodTags()
-    await applyAiFoodImage()
+    const foodTags = buildPublishFoodTags()
 
     const payload: CreateFoodRecordPayload = {
       sentiment: dto.sentiment,
@@ -913,6 +1065,10 @@ onBeforeUnmount(() => {
     margin-bottom: 12px;
   }
 
+  .field-head .field-label {
+    margin-bottom: 0;
+  }
+
   .field-input,
   .field-readonly,
   .field-textarea {
@@ -971,6 +1127,104 @@ onBeforeUnmount(() => {
     resize: none;
     // height: auto;
     font-weight: 400;
+  }
+
+  .tag-field {
+    margin-top: -4px;
+  }
+
+  .mini-action-btn,
+  .tag-add-btn,
+  .ai-image-action {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 56px;
+    padding: 0 20px;
+    border-radius: 18px;
+    background: rgba(255, 245, 239, 0.92);
+    color: #c45c48;
+    font-size: 21px;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .mini-action-btn.disabled {
+    opacity: 0.62;
+  }
+
+  .tag-input-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .tag-input {
+    flex: 1;
+    min-width: 0;
+    height: 76px;
+    padding: 0 22px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid rgba(217, 242, 235, 0.88);
+    box-shadow: 0 10px 22px rgba(186, 223, 215, 0.12);
+    color: #5d433a;
+    font-size: 24px;
+    line-height: 76px;
+    box-sizing: border-box;
+  }
+
+  .tag-chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 16px;
+    min-height: 54px;
+    align-items: center;
+  }
+
+  .tag-empty-text {
+    color: #b2a59a;
+    font-size: 21px;
+    line-height: 1.5;
+  }
+
+  .publish-tag-chip {
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    min-height: 54px;
+    padding: 0 10px 0 18px;
+    border-radius: 999px;
+    background: rgba(255, 245, 239, 0.92);
+    border: 1px solid rgba(239, 145, 114, 0.2);
+    color: #b86b52;
+    box-sizing: border-box;
+  }
+
+  .publish-tag-text {
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1.25;
+  }
+
+  .publish-tag-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    margin-left: 4px;
+    color: #d6755e;
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1;
   }
 
   .suggestion-panel {
@@ -1037,6 +1291,18 @@ onBeforeUnmount(() => {
 
   .image-field {
     margin-bottom: 0;
+  }
+
+  .ai-image-action {
+    width: 100%;
+    height: 76px;
+    margin: 14px 0 0;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #79cfb5 0%, #ef9172 100%);
+    color: #fff;
+    font-size: 25px;
+    box-shadow: 0 8px 18px rgba(121, 207, 181, 0.22);
+    box-sizing: border-box;
   }
 
   .preview-image {

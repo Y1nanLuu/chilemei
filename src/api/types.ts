@@ -89,6 +89,7 @@ export type FoodDetailResponse = {
   like_count?: number
   dislike_count?: number
   cover_image_url?: string | null
+  food_tags?: FoodTagExtraction | null
   image_urls: string[]
   description?: string | null
   comments: FoodComment[]
@@ -216,6 +217,8 @@ export type UpdateFoodRecordPayload = {
   rating_level?: RatingLevelValue
   review_text?: string
   image_url?: string
+  image_filename?: string
+  food_tags?: FoodTagExtraction
 }
 
 export type CreateCommentPayload = {
