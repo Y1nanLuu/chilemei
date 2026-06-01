@@ -14,7 +14,8 @@
       pages: [
         'register/index',
         'edit/index',
-        'preferences/index'
+        'preferences/index',
+        'report/index',
       ]
     },
     {

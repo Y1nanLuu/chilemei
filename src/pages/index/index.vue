@@ -6,8 +6,8 @@
           <view class="headline-wrap">
             <view class="headline-row">
               <view class="headline-shell">
-                <view class="headline-bubbles" aria-hidden="true">
-                  <text
+                <view class="headline-bubbles">
+                  <view
                     v-for="bubble in bubbleDots"
                     :key="bubble.id"
                     class="bubble-dot"
@@ -21,18 +21,8 @@
                     }"
                   />
                 </view>
-                <view class="headline" aria-label="把今天想记住的美味，轻轻存下来">
-                  <text
-                    v-for="(char, index) in headlineChars"
-                    :key="`${char}-${index}`"
-                    class="headline-char"
-                    :style="{
-                      animationDelay: `${1.4 + (index % 5) * 0.18}s`,
-                      animationDuration: `${4.2 + (index % 3) * 0.22}s`,
-                    }"
-                  >
-                    {{ char }}
-                  </text>
+                <view class="headline">
+                  <text class="headline-text">把今天想记住的美味，轻轻存下来</text>
                 </view>
               </view>
             </view>
@@ -44,7 +34,7 @@
         <view class="search-box glass-card">
           <text class="search-icon">⌕</text>
           <input
-            v-model="searchInput"
+            :value="searchInput"
             class="search-input"
             type="text"
             confirm-type="search"
@@ -62,9 +52,9 @@
             <text class="home-suggestion-bar-title">「{{ searchInput.trim() }}」相关美食</text>
             <text class="home-suggestion-bar-clear" @tap.stop="clearSearch">清除</text>
           </view>
-          <view v-if="!hasAccessToken()" class="home-suggestion-state">请先登录后再使用搜索联想</view>
+          <view v-if="!loggedIn" class="home-suggestion-state">请先登录后再使用搜索联想</view>
           <view v-else-if="suggestionLoading" class="home-suggestion-state">正在查找...</view>
-          <template v-else>
+          <view v-else class="home-suggestion-list">
             <view
               v-for="item in suggestedFoods"
               :key="item.id"
@@ -80,13 +70,17 @@
             >
               暂无包含该名称的美食
             </view>
-          </template>
+          </view>
         </view>
       </view>
 
       <view v-if="loading" class="status-card glass-card">加载中...</view>
-      <view v-else-if="errorMessage" class="status-card glass-card">{{ errorMessage }}</view>
-      <template v-else>
+      <view v-if="!loading && !loggedIn" class="status-card glass-card login-tip">
+        登录后可查看个性化推荐，请前往「我的」页登录。
+      </view>
+      <view v-if="!loading && loggedIn && errorMessage" class="status-card glass-card">{{ errorMessage }}</view>
+
+      <view v-show="!loading" class="home-content">
         <view class="section-title">
           <text class="title">猜你喜欢</text>
         </view>
@@ -205,7 +199,7 @@
           </view>
         </view>
         <view v-else class="status-card glass-card">暂无个性化推荐</view>
-      </template>
+      </view>
 
       <view v-if="showCelebration" class="celebration-overlay">
         <view class="celebration-fireworks" aria-hidden="true">
@@ -254,7 +248,6 @@ import { consumeUserPreferencesUpdated } from '../../utils/preferences'
 import { getFoodTagChips } from '../../utils/food-tags'
 import { getMediaUrl } from '../../utils/request'
 
-const headlineChars = Array.from('把今天想记住的美味，轻轻存下来')
 const bubbleDots = [
   { id: 'b1', size: 7, left: '3%', bottom: '4px', delay: '0.1s', duration: '2.9s' },
   { id: 'b2', size: 10, left: '9%', bottom: '0px', delay: '0.5s', duration: '3.3s' },
@@ -299,7 +292,8 @@ const recommendations = ref<FoodRecommendationCard[]>([])
 const dailySlides = ref<FoodRecommendationCard[]>([])
 /** 两侧留白以露出相邻卡片一角，类似 QQ 音乐歌单卡 */
 const heroSwiperPeek = '32px'
-const loading = ref(false)
+const loading = ref(true)
+const loggedIn = ref(hasAccessToken())
 const errorMessage = ref('')
 const searchInput = ref('')
 const searchInputFocused = ref(false)
@@ -444,11 +438,14 @@ const toggleInteraction = (type: InteractionType, food: FoodRecommendationCard) 
 }
 
 const loadData = async () => {
-  if (!hasAccessToken()) {
-    errorMessage.value = '请先前往登录页获取 access token。'
+  loggedIn.value = hasAccessToken()
+
+  if (!loggedIn.value) {
+    errorMessage.value = ''
     dailyPick.value = null
     recommendations.value = []
     dailySlides.value = []
+    loading.value = false
     return
   }
 
@@ -590,7 +587,8 @@ const scheduleSearchSuggestions = () => {
   }, 220)
 }
 
-const handleSearchInput = () => {
+const handleSearchInput = (event: { detail: { value: string } }) => {
+  searchInput.value = event.detail.value
   searchPanelPinned.value = false
   scheduleSearchSuggestions()
 }
@@ -713,7 +711,7 @@ onBeforeUnmount(() => {
   .headline-shell,
   .headline-bubbles,
   .bubble-dot,
-  .headline-char,
+  .headline-text,
   .search-icon {
     box-sizing: border-box;
     min-width: 0;
@@ -796,10 +794,21 @@ onBeforeUnmount(() => {
     word-break: break-word;
   }
 
-  .headline-char {
-    display: inline-block;
-    animation: fizz-text 4.4s ease-in-out infinite;
-    animation-fill-mode: both;
+  .headline-text {
+    display: block;
+    font-size: 34px;
+    line-height: 1.35;
+    font-weight: 700;
+    color: #5d433a;
+    word-break: break-word;
+  }
+
+  .login-tip {
+    color: #7f8a84;
+  }
+
+  .home-content {
+    width: 100%;
   }
 
   .glass-card {

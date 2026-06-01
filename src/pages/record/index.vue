@@ -30,16 +30,15 @@
       </view>
 
       <view v-if="loading" class="status-card glass-card">正在整理你的用餐时间轴...</view>
-      <view v-else-if="errorMessage" class="status-card glass-card">{{ errorMessage }}</view>
-      <view v-else-if="records.length === 0" class="status-card glass-card">
+      <view v-if="!loading && errorMessage" class="status-card glass-card">{{ errorMessage }}</view>
+      <view v-if="!loading && !errorMessage && records.length === 0" class="status-card glass-card">
         还没有个人记录，先去发布一条新记录吧。
       </view>
-
-      <view v-else-if="records.length > 0 && timelineRecords.length === 0" class="status-card glass-card">
+      <view v-if="!loading && !errorMessage && records.length > 0 && timelineRecords.length === 0" class="status-card glass-card">
         当前筛选下没有记录，可更换日期或切回「全部日期」「全部」查看。
       </view>
 
-      <view v-else class="timeline">
+      <view v-show="!loading && !errorMessage && timelineRecords.length > 0" class="timeline">
         <view
           v-for="item in timelineRecords"
           :key="item.id"

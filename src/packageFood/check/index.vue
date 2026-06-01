@@ -1,9 +1,9 @@
 ﻿<template>
   <view class="mobile-shell detail-page">
     <view class="screen-frame">
-      <view v-if="loading" class="info-card glass-card">加载中...</view>
-      <view v-else-if="errorMessage" class="info-card glass-card">{{ errorMessage }}</view>
-      <template v-else-if="record">
+      <view v-if="loading" class="status-card glass-card">加载中...</view>
+      <view v-else-if="errorMessage" class="status-card glass-card">{{ errorMessage }}</view>
+      <view v-else-if="record" class="detail-content">
         <image class="cover-image glass-card" :src="coverImage" mode="aspectFill" />
 
         <view class="meta-row">
@@ -199,8 +199,8 @@
             </view>
           </view>
         </view>
-      </template>
-      <view v-else class="info-card glass-card">没有找到对应记录</view>
+      </view>
+      <view v-else class="status-card glass-card">没有找到对应记录</view>
     </view>
   </view>
 </template>
@@ -785,18 +785,67 @@ useDidShow(() => {
   max-width: 100%;
   overflow-x: hidden;
   min-height: 100vh;
+
+  &.mobile-shell {
+    padding: 40px 30px 260px;
+  }
+
+  /* 与首页 / 记录页 / 食物详情同一套底色 */
   background:
-    radial-gradient(circle at 82% 7%, rgba(255, 210, 195, 0.82), transparent 20%),
-    radial-gradient(circle at 16% 12%, rgba(231, 252, 246, 0.94), transparent 24%),
-    radial-gradient(circle at 52% 0%, rgba(255, 241, 233, 0.85), transparent 26%),
-    linear-gradient(180deg, #f4fffd 0%, #f6fffb 24%, #fffaf6 58%, #fff2ea 100%);
+    radial-gradient(circle at 78% 4%, rgba(255, 210, 195, 0.75), transparent 22%),
+    radial-gradient(circle at 12% 18%, rgba(186, 236, 220, 0.55), transparent 28%),
+    radial-gradient(circle at 50% 0%, rgba(255, 241, 233, 0.9), transparent 32%),
+    linear-gradient(180deg, #dff5ec 0%, #e8faf4 18%, #f6fffb 42%, #fffaf6 72%, #fff2ea 100%);
+
+  .screen-frame,
+  .glass-card,
+  .cover-image,
+  .author-card,
+  .score-card,
+  .info-card,
+  .status-card {
+    box-sizing: border-box;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .screen-frame {
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 0 4px 20px;
+  }
+
+  .glass-card {
+    background: rgba(255, 255, 255, 0.28);
+    border: 1px solid rgba(255, 255, 255, 0.58);
+    box-shadow: 0 8px 16px rgba(202, 221, 214, 0.08);
+    backdrop-filter: blur(12px);
+    border-radius: 24px;
+  }
+
+  .status-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+    padding: 18px;
+    margin-bottom: 32px;
+    overflow: hidden;
+    border-radius: 24px;
+    color: #98a8a1;
+    font-size: 24px;
+    line-height: 1.6;
+    word-break: break-word;
+  }
 
   .cover-image {
     width: 100%;
     height: 340px;
-    border-radius: 28px;
+    border-radius: 24px;
     overflow: hidden;
-    margin-bottom: 20px;
+    margin-bottom: 18px;
   }
 
   .meta-row {
@@ -823,7 +872,7 @@ useDidShow(() => {
     width: 58px;
     height: 58px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--brand-500) 0%, var(--peach-500) 100%);
+    background: linear-gradient(135deg, #ef9172 0%, #f4b19d 100%);
     color: #fff;
     font-size: 26px;
     font-weight: 700;
@@ -836,6 +885,7 @@ useDidShow(() => {
     display: block;
     font-size: 24px;
     font-weight: 700;
+    color: #5d433a;
     margin-bottom: 4px;
   }
 
@@ -846,7 +896,7 @@ useDidShow(() => {
   .empty-comments,
   .tip-text {
     font-size: 18px;
-    color: var(--ink-500);
+    color: #9aa7a0;
   }
 
   .score-card {
@@ -861,7 +911,7 @@ useDidShow(() => {
   .score-value {
     font-size: 34px;
     font-weight: 700;
-    color: var(--brand-600);
+    color: #ef9172;
     margin-bottom: 8px;
   }
 
@@ -876,9 +926,10 @@ useDidShow(() => {
 
   .detail-title {
     display: block;
-    font-size: 42px;
+    font-size: 36px;
     line-height: 1.32;
     font-weight: 800;
+    color: #5d433a;
     margin-bottom: 8px;
   }
 
@@ -890,6 +941,7 @@ useDidShow(() => {
     display: block;
     font-size: 24px;
     font-weight: 700;
+    color: #5d433a;
     margin-bottom: 14px;
   }
 
@@ -897,7 +949,7 @@ useDidShow(() => {
   .comment-text {
     font-size: 22px;
     line-height: 1.7;
-    color: var(--ink-700);
+    color: #6a6f6c;
   }
 
   .tag-row {
@@ -922,44 +974,60 @@ useDidShow(() => {
   }
 
   .selectable-chip.active {
-    background: linear-gradient(135deg, #2f6bff 0%, #7dbbff 100%);
+    background: linear-gradient(135deg, #ef9172 0%, #f4b19d 100%);
     color: #fff;
   }
 
   .action-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
+    gap: 10px;
     margin-bottom: 18px;
   }
 
   .action-btn,
   .submit-btn {
-    min-height: 78px;
-    padding: 0 18px;
-    border-radius: 20px;
+    min-height: 72px;
+    padding: 10px 14px;
+    border-radius: 999px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 22px;
+    font-size: 23px;
     font-weight: 700;
+    line-height: 1.3;
+    -webkit-tap-highlight-color: transparent;
   }
 
   .primary-btn,
   .submit-btn {
+    color: #fffaf8;
     background: linear-gradient(135deg, #ef9172 0%, #f4b19d 100%);
-    color: #fff;
-    box-shadow: 0 8px 20px rgba(239, 145, 114, 0.24);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    box-shadow: 0 4px 12px rgba(239, 145, 114, 0.22);
+  }
+
+  .primary-btn:active,
+  .submit-btn:active {
+    opacity: 0.92;
   }
 
   .secondary-btn {
-    background: #eef4ff;
-    color: var(--brand-600);
+    color: #9e9084;
+    background: rgba(255, 255, 255, 0.55);
+    border: 1px solid rgba(255, 210, 200, 0.45);
+    backdrop-filter: blur(8px);
   }
 
   .danger-btn {
-    background: #fff1f1;
     color: #cc3f48;
+    background: rgba(255, 255, 255, 0.55);
+    border: 1px solid rgba(255, 200, 200, 0.45);
+    backdrop-filter: blur(8px);
+  }
+
+  .danger-btn:active {
+    opacity: 0.88;
   }
 
   .editor-panel,
@@ -1133,8 +1201,8 @@ useDidShow(() => {
 
   .image-picker {
     width: 100%;
-    height: 420px;
-    border-radius: 28px;
+    height: 340px;
+    border-radius: 24px;
     background: rgba(255, 255, 255, 0.92);
     border: 1px solid rgba(217, 242, 235, 0.88);
     box-shadow: 0 12px 28px rgba(186, 223, 215, 0.16);
@@ -1173,18 +1241,17 @@ useDidShow(() => {
   }
 
   .comment-textarea {
-    min-height: 140px;
-  }
-
-  .comment-textarea {
     width: 100%;
+    min-height: 140px;
     box-sizing: border-box;
-    border-radius: 18px;
-    border: 1px solid #d9e6ff;
-    background: #f8fbff;
-    padding: 18px;
+    border-radius: 24px;
+    border: 1px solid rgba(217, 242, 235, 0.88);
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 12px 28px rgba(186, 223, 215, 0.16);
+    padding: 24px;
     font-size: 22px;
-    color: var(--ink-700);
+    line-height: 1.6;
+    color: #5d433a;
   }
 
   .mood-row {
@@ -1230,17 +1297,17 @@ useDidShow(() => {
 
   .publish-like-editor .edit-submit-btn {
     width: 100%;
-    height: 86px;
-    min-height: 86px;
-    border-radius: 22px;
-    font-size: 28px;
-    font-weight: 800;
+    min-height: 72px;
+    border-radius: 999px;
+    font-size: 23px;
+    font-weight: 700;
     margin-top: 8px;
-    padding: 0;
+    padding: 10px 14px;
     box-sizing: border-box;
+    color: #fffaf8;
     background: linear-gradient(135deg, #ef9172 0%, #f4b19d 100%);
-    color: #fff;
-    box-shadow: 0 8px 20px rgba(239, 145, 114, 0.24);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    box-shadow: 0 4px 12px rgba(239, 145, 114, 0.22);
   }
 
   .comment-head {
@@ -1254,7 +1321,7 @@ useDidShow(() => {
     gap: 14px;
     padding-top: 18px;
     margin-top: 18px;
-    border-top: 1px solid #e8eefc;
+    border-top: 1px solid rgba(217, 242, 235, 0.76);
   }
 
   .comment-content {
@@ -1271,6 +1338,7 @@ useDidShow(() => {
   .comment-user {
     font-size: 22px;
     font-weight: 700;
+    color: #5d433a;
   }
 
   .tip-list {

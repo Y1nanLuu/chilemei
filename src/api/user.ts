@@ -1,11 +1,12 @@
 ﻿import type {
-  AnnualReport,
   UpdateUserProfilePayload,
   UpdateUserPreferencesPayload,
   UserPreferenceProfile,
   UserProfile,
 } from './types'
 import { request } from '../utils/request'
+
+export { getAnnualReport, getMonthlyReport } from './reports'
 
 export const getCurrentUser = () => {
   return request<UserProfile>({
@@ -18,12 +19,6 @@ export const updateUserProfile = (payload: UpdateUserProfilePayload) => {
     url: '/users/me',
     method: 'PUT',
     data: payload,
-  })
-}
-
-export const getAnnualReport = (year: number) => {
-  return request<AnnualReport>({
-    url: `/reports/annual/${year}`,
   })
 }
 

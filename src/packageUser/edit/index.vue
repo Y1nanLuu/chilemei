@@ -8,7 +8,7 @@
       <view v-if="loading" class="status-panel">加载中...</view>
       <view v-else-if="errorMessage" class="status-panel">{{ errorMessage }}</view>
 
-      <template v-else>
+      <view v-else class="edit-content">
         <view class="avatar-panel">
           <view class="avatar-wrap" @tap="chooseAvatar">
             <image v-if="avatarPreviewUrl" class="avatar-image" :src="avatarPreviewUrl" mode="aspectFill" />
@@ -83,7 +83,7 @@
         <view class="save-btn" @tap="submitProfile">
           {{ saving ? '保存中...' : '保存资料' }}
         </view>
-      </template>
+      </view>
     </view>
   </view>
 </template>

@@ -3,7 +3,7 @@
     <view class="screen-frame">
       <view v-if="loading" class="status-card glass-card">画像加载中...</view>
       <view v-else-if="errorMessage" class="status-card glass-card">{{ errorMessage }}</view>
-      <template v-else>
+      <view v-else class="preferences-content">
         <view class="hero-card glass-card">
           <text class="hero-title">口味画像</text>
           <text class="hero-copy">管理偏爱口味、忌口和吃辣等级，让个性化推荐更贴近你。</text>
@@ -112,7 +112,7 @@
         <view class="save-btn" @click="handleSave">
           {{ saving ? '保存中...' : '保存画像' }}
         </view>
-      </template>
+      </view>
     </view>
   </view>
 </template>

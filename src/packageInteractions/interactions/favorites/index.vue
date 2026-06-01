@@ -2,7 +2,6 @@
   <view class="mobile-shell interaction-page">
     <view class="screen-frame">
       <view class="hero-card glass-card">
-        <text class="hero-badge">互动中心</text>
         <text class="hero-title">我的收藏</text>
         <text class="hero-copy">这里汇总你收藏过的美食。</text>
       </view>
@@ -99,16 +98,6 @@ useDidShow(() => {
   .food-card {
     padding: 24px;
     margin-bottom: 18px;
-  }
-
-  .hero-badge {
-    display: inline-flex;
-    padding: 8px 14px;
-    border-radius: 999px;
-    background: #eef4ff;
-    color: var(--brand-600);
-    font-size: 20px;
-    margin-bottom: 14px;
   }
 
   .hero-title,

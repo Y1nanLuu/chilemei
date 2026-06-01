@@ -136,15 +136,52 @@ export type UserPreferenceProfile = {
 
 export type UpdateUserPreferencesPayload = UserPreferenceProfile
 
+export type ReportSentimentSummary = {
+  like_count: number
+  dislike_count: number
+  like_rate: string
+  dislike_rate: string
+}
+
+export type ReportRankItem = {
+  name: string
+  count: number
+}
+
+export type MonthlySpendItem = {
+  month: number
+  total_spend: string
+  record_count: number
+}
+
+export type DailySpendItem = {
+  day: number
+  total_spend: string
+  record_count: number
+}
+
 export type AnnualReport = {
+  year: number
   total_records: number
-  total_spend: number
-  average_spend: number
-  total_like_records: number
-  total_dislike_records: number
-  top_foods: Array<{ name: string; count: number }>
-  top_locations: Array<{ location: string; count: number }>
-  monthly_spend: Array<{ month: string; amount: number }>
+  total_spend: string
+  average_spend: string
+  sentiment_summary: ReportSentimentSummary
+  top_foods: ReportRankItem[]
+  top_locations: ReportRankItem[]
+  monthly_spend: MonthlySpendItem[]
+  title_tags: string[]
+}
+
+export type MonthlyReport = {
+  year: number
+  month: number
+  total_records: number
+  total_spend: string
+  average_spend: string
+  sentiment_summary: ReportSentimentSummary
+  top_foods: ReportRankItem[]
+  top_locations: ReportRankItem[]
+  daily_spend: DailySpendItem[]
   title_tags: string[]
 }
 

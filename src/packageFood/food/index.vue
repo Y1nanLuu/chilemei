@@ -1,9 +1,9 @@
 ﻿<template>
   <view class="mobile-shell food-detail-page">
     <view class="screen-frame">
-      <view v-if="loading" class="detail-card glass-card">加载中...</view>
-      <view v-else-if="errorMessage" class="detail-card glass-card">{{ errorMessage }}</view>
-      <template v-else-if="detail">
+      <view v-if="loading" class="status-card glass-card">加载中...</view>
+      <view v-else-if="errorMessage" class="status-card glass-card">{{ errorMessage }}</view>
+      <view v-else-if="detail" class="detail-content">
         <view class="hero-card glass-card">
           <swiper
             class="hero-swiper"
@@ -67,7 +67,7 @@
               :placeholder="replyTarget ? `回复 ${getCommentNickname(replyTarget)}` : '写下你对这道菜的评价'"
               @input="handleCommentInput"
             />
-            <view class="comment-submit" @tap.stop="handleCreateComment">
+            <view class="submit-btn" @tap.stop="handleCreateComment">
               {{ commentSubmitting ? '发布中...' : '发表评论' }}
             </view>
           </view>
@@ -97,8 +97,8 @@
             </view>
           </view>
         </view>
-      </template>
-      <view v-else class="detail-card glass-card">没有找到对应食物</view>
+      </view>
+      <view v-else class="status-card glass-card">没有找到对应食物</view>
     </view>
   </view>
 </template>
@@ -330,12 +330,48 @@ useDidShow(() => {
 
 <style lang="scss">
 .food-detail-page {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
   min-height: 100vh;
+
+  &.mobile-shell {
+    padding: 40px 30px 260px;
+  }
+
+  /* 与首页 / 记录页同一套底色 */
   background:
-    radial-gradient(circle at 82% 7%, rgba(255, 210, 195, 0.82), transparent 20%),
-    radial-gradient(circle at 16% 12%, rgba(231, 252, 246, 0.94), transparent 24%),
-    radial-gradient(circle at 52% 0%, rgba(255, 241, 233, 0.85), transparent 26%),
-    linear-gradient(180deg, #f4fffd 0%, #f6fffb 24%, #fffaf6 58%, #fff2ea 100%);
+    radial-gradient(circle at 78% 4%, rgba(255, 210, 195, 0.75), transparent 22%),
+    radial-gradient(circle at 12% 18%, rgba(186, 236, 220, 0.55), transparent 28%),
+    radial-gradient(circle at 50% 0%, rgba(255, 241, 233, 0.9), transparent 32%),
+    linear-gradient(180deg, #dff5ec 0%, #e8faf4 18%, #f6fffb 42%, #fffaf6 72%, #fff2ea 100%);
+
+  .screen-frame,
+  .glass-card,
+  .hero-card,
+  .detail-card,
+  .status-card {
+    box-sizing: border-box;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .screen-frame {
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 0 4px 20px;
+  }
+
+  .glass-card {
+    background: rgba(255, 255, 255, 0.28);
+    border: 1px solid rgba(255, 255, 255, 0.58);
+    box-shadow: 0 8px 16px rgba(202, 221, 214, 0.08);
+    backdrop-filter: blur(12px);
+    border-radius: 24px;
+  }
 
   .hero-card,
   .detail-card {
@@ -343,19 +379,24 @@ useDidShow(() => {
     overflow: hidden;
   }
 
-  .glass-card {
-    background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(251, 255, 253, 0.82)),
-      radial-gradient(circle at top right, rgba(255, 229, 220, 0.22), transparent 30%);
-    border: 1px solid rgba(217, 242, 235, 0.92);
-    box-shadow: 0 18px 34px rgba(186, 223, 215, 0.14);
-    backdrop-filter: blur(12px);
-    border-radius: 28px;
+  .status-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+    padding: 18px;
+    margin-bottom: 32px;
+    overflow: hidden;
+    border-radius: 24px;
+    color: #98a8a1;
+    font-size: 24px;
+    line-height: 1.6;
+    word-break: break-word;
   }
 
   .hero-swiper {
     width: 100%;
-    height: 420px;
+    height: 340px;
   }
 
   .hero-image {
@@ -448,8 +489,8 @@ useDidShow(() => {
 
   .section-title {
     display: block;
-    font-size: 28px;
-    font-weight: 800;
+    font-size: 24px;
+    font-weight: 700;
     color: #5d433a;
     margin-bottom: 14px;
   }
@@ -504,15 +545,17 @@ useDidShow(() => {
     width: 100%;
     min-height: 140px;
     box-sizing: border-box;
-    border-radius: 20px;
-    border: 1px solid #d9e6ff;
-    background: #f8fbff;
-    padding: 18px;
+    border-radius: 24px;
+    border: 1px solid rgba(217, 242, 235, 0.88);
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 12px 28px rgba(186, 223, 215, 0.16);
+    padding: 24px;
     font-size: 22px;
-    color: var(--ink-700);
+    line-height: 1.6;
+    color: #5d433a;
   }
 
-  .comment-submit {
+  .submit-btn {
     min-height: 78px;
     padding: 0 18px;
     border-radius: 20px;
@@ -521,8 +564,14 @@ useDidShow(() => {
     justify-content: center;
     font-size: 22px;
     font-weight: 700;
-    background: linear-gradient(135deg, #2f6bff 0%, #7dbbff 100%);
+    background: linear-gradient(135deg, #ef9172 0%, #f4b19d 100%);
     color: #fff;
+    box-shadow: 0 8px 20px rgba(239, 145, 114, 0.24);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .submit-btn:active {
+    opacity: 0.92;
   }
 
   .comment-item {
@@ -530,7 +579,7 @@ useDidShow(() => {
     gap: 14px;
     padding-top: 18px;
     margin-top: 18px;
-    border-top: 1px solid #e8eefc;
+    border-top: 1px solid rgba(217, 242, 235, 0.76);
     -webkit-tap-highlight-color: transparent;
   }
 

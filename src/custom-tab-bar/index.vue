@@ -2,27 +2,35 @@
   <view class="custom-tabbar-shell">
     <view class="custom-tabbar">
       <view
-        v-for="item in leftItems"
-        :key="item.pagePath"
         class="nav-item"
-        :class="{ active: currentPath === item.pagePath }"
-        @click="switchTo(item.pagePath)"
+        :class="{ active: isActive('pages/index/index') }"
+        @tap="switchTo('pages/index/index')"
       >
-        <text class="nav-label">{{ item.text }}</text>
+        <text class="nav-label">首页</text>
       </view>
-
-      <view class="plus-slot" @click="switchTo(centerItem.pagePath)">
-        <view class="plus-button" :class="{ active: currentPath === centerItem.pagePath }">+</view>
-      </view>
-
       <view
-        v-for="item in rightItems"
-        :key="item.pagePath"
         class="nav-item"
-        :class="{ active: currentPath === item.pagePath }"
-        @click="switchTo(item.pagePath)"
+        :class="{ active: isActive('pages/record/index') }"
+        @tap="switchTo('pages/record/index')"
       >
-        <text class="nav-label">{{ item.text }}</text>
+        <text class="nav-label">记录</text>
+      </view>
+      <view class="plus-slot" @tap="switchTo('pages/publish/index')">
+        <view class="plus-button" :class="{ active: isActive('pages/publish/index') }">+</view>
+      </view>
+      <view
+        class="nav-item"
+        :class="{ active: isActive('pages/rank/index') }"
+        @tap="switchTo('pages/rank/index')"
+      >
+        <text class="nav-label">榜单</text>
+      </view>
+      <view
+        class="nav-item"
+        :class="{ active: isActive('pages/profile/index') }"
+        @tap="switchTo('pages/profile/index')"
+      >
+        <text class="nav-label">我的</text>
       </view>
     </view>
   </view>
@@ -32,24 +40,7 @@
 import { onMounted, ref } from 'vue'
 import Taro, { useDidShow } from '@tarojs/taro'
 
-type TabItem = {
-  pagePath: string
-  text: string
-}
-
 declare const getCurrentPages: () => Array<{ route?: string }>
-
-const tabs: TabItem[] = [
-  { pagePath: 'pages/index/index', text: '首页' },
-  { pagePath: 'pages/record/index', text: '记录' },
-  { pagePath: 'pages/publish/index', text: '+' },
-  { pagePath: 'pages/rank/index', text: '榜单' },
-  { pagePath: 'pages/profile/index', text: '我的' },
-]
-
-const leftItems = tabs.slice(0, 2)
-const centerItem = tabs[2]
-const rightItems = tabs.slice(3)
 
 const currentPath = ref('')
 
@@ -59,13 +50,16 @@ const syncCurrentPath = () => {
   currentPath.value = route
 }
 
+const isActive = (pagePath: string) => {
+  return currentPath.value === pagePath || currentPath.value === `/${pagePath}`
+}
+
 const switchTo = (pagePath: string) => {
-  const target = `/${pagePath}`
-  if (currentPath.value === target || currentPath.value === pagePath) {
+  if (isActive(pagePath)) {
     return
   }
 
-  Taro.switchTab({ url: target })
+  Taro.switchTab({ url: `/${pagePath}` })
 }
 
 onMounted(syncCurrentPath)
@@ -109,12 +103,11 @@ useDidShow(syncCurrentPath)
   font-weight: 450;
   color: #b8a99c;
   white-space: nowrap;
-  transition: all 0.2s;
 }
 
 .nav-item.active .nav-label {
   font-size: 33px;
-  color: var(--ink-900);
+  color: #122033;
   font-weight: 450;
 }
 
@@ -139,7 +132,6 @@ useDidShow(syncCurrentPath)
   font-size: 50px;
   font-weight: 500;
   line-height: 1;
-  transition: all 0.2s;
 }
 
 .plus-button.active {

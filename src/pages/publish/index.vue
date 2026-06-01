@@ -22,7 +22,7 @@
 
             <view v-if="showFoodSuggestions" class="suggestion-panel">
               <view v-if="suggestionLoading" class="suggestion-state">正在查找已有食物...</view>
-              <template v-else>
+              <view v-else class="suggestion-list">
                 <view
                   v-for="item in suggestedFoods"
                   :key="item.id"
@@ -48,7 +48,7 @@
                 >
                   没找到同名食物，直接新建
                 </view>
-              </template>
+              </view>
             </view>
           </view>
 

@@ -14,21 +14,21 @@
           <view class="follow-btn" @tap="profile ? openEditProfile() : handleWechatLogin()">
             {{ profile ? '编辑资料' : '立即登录' }}
           </view>
-          <view class="share-btn">美食报告</view>
+          <view class="share-btn" @tap="openFoodReport">美食报告</view>
         </view>
       </view>
 
       <view v-if="loading" class="favorites glass-card">加载中...</view>
-      <view v-else-if="loginRequired" class="login-panel glass-card">
+      <view v-if="!loading && loginRequired" class="login-panel glass-card">
         <text class="login-title">登录后查看个人中心</text>
         <text class="login-copy">同步你的收藏、记录和口味画像。</text>
         <view class="login-btn" @tap="handleWechatLogin">
           {{ loginLoading ? '登录中...' : '立即登录' }}
         </view>
       </view>
-      <view v-else-if="errorMessage" class="favorites glass-card">{{ errorMessage }}</view>
+      <view v-if="!loading && !loginRequired && errorMessage" class="favorites glass-card">{{ errorMessage }}</view>
 
-      <template v-else>
+      <view v-show="!loading && !loginRequired && !errorMessage" class="profile-content">
         <view class="stats-grid">
           <view
             v-for="item in profileHighlights"
@@ -56,7 +56,7 @@
           </view>
           <view v-if="topFoods.length === 0" class="favorite-meta">年度报告中暂时没有高频食物。</view>
         </view>
-      </template>
+      </view>
     </view>
   </view>
 </template>
@@ -195,6 +195,21 @@ const openEditProfile = () => {
     url: '/packageUser/edit/index',
     fail: (error) => {
       const message = error?.errMsg || '编辑资料页面打开失败'
+      Taro.showToast({ title: message, icon: 'none' })
+    },
+  })
+}
+
+const openFoodReport = () => {
+  if (!hasAccessToken()) {
+    Taro.showToast({ title: '请先登录后再查看美食报告', icon: 'none' })
+    return
+  }
+
+  Taro.navigateTo({
+    url: '/packageUser/report/index',
+    fail: (error) => {
+      const message = error?.errMsg || '美食报告页面打开失败'
       Taro.showToast({ title: message, icon: 'none' })
     },
   })
